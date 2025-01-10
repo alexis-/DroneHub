@@ -1,0 +1,62 @@
+const flySafeZones = [
+  {color_hex: 'FFCC00', color_r: 255, color_g: 204, color_b: 0, level: 0, title: 'Warning zones'},
+  {
+    color_hex: '1088F2',
+    color_r: 16,
+    color_g: 136,
+    color_b: 242,
+    level: 1,
+    title: 'Authorization zones',
+  },
+  {
+    color_hex: 'DE4329',
+    color_r: 222,
+    color_g: 67,
+    color_b: 41,
+    level: 2,
+    title: 'Restricted zones',
+  },
+  {
+    color_hex: 'EE8815',
+    color_r: 238,
+    color_g: 136,
+    color_b: 21,
+    level: 3,
+    title: 'Enhanced warning zones',
+  },
+  {
+    color_hex: '37C4DB',
+    color_r: 55,
+    color_g: 196,
+    color_b: 219,
+    level: 4,
+    title: 'Regulatory restricted zones',
+  },
+  {
+    color_hex: '979797',
+    color_r: 151,
+    color_g: 151,
+    color_b: 151,
+    level: 6,
+    title: 'Altitude zones',
+  },
+  {color_hex: '00BE00', color_r: 0, color_g: 190, color_b: 0, level: 7, title: 'Recommended zones'},
+  {
+    color_hex: '00BE00',
+    color_r: 0,
+    color_g: 190,
+    color_b: 0,
+    level: 8,
+    title: 'Approved Zones for Light UAVs (China)',
+  },
+  {
+    color_hex: 'DE4329',
+    color_r: 222,
+    color_g: 67,
+    color_b: 41,
+    level: 9,
+    title: 'Densely Populated Area',
+  },
+];
+
+export default flySafeZones;

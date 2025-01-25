@@ -1,0 +1,36 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "target": "ES2022",
+    "lib": ["ES2023", "dom"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    "useDefineForClassFields": true,
+    "experimentalDecorators": true,
+    
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+
+    /* Linting */
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedSideEffectImports": true,
+
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ]
+  },
+  "files": [],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+}

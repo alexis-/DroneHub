@@ -6,8 +6,8 @@ import { Vector as VectorSource } from 'ol/source';
 import { Style, Icon } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { MapConfig } from '@/config/map-config';
-import { AppError } from '@/utils/errors/app-error';
-import type { MapMarker, MarkerOptions } from '@/types/map-features';
+import { AppError } from '@dhlib/models/app-errors';
+import type { MapMarker, MarkerOptions } from '@/models/ui/map-features';
 import type { Map as OlMap } from 'ol';
 
 const CONTEXT = 'MapFeaturesService';

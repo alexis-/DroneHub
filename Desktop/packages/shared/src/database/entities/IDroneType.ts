@@ -1,4 +1,4 @@
-import type { IRoute } from './IRoute';
+import type { IRoute } from './IRoute.js';
 
 export interface IDroneType {
     id: number;

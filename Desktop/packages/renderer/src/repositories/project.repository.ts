@@ -1,7 +1,7 @@
 import { ref } from 'vue';
-import { databaseApi } from '#preload';
+import { databaseApi } from '@vite-electron-builder/preload';
 import { Logger } from '@/services/logger.service';
-import { AppError } from '@/utils/errors/app-error';
+import { DatabaseError } from '@/models/errors/app-error';
 import type { IProject } from '@shared/database/entities/IProject';
 
 const CONTEXT = 'ProjectRepository';
@@ -24,7 +24,7 @@ class ProjectRepository {
       }
       return this.projects.value;
     } catch (error) {
-      throw new AppError('Failed to get projects', CONTEXT, error as Error);
+      throw new DatabaseError('Failed to get projects', CONTEXT, error as Error);
     }
   }
 
@@ -52,7 +52,7 @@ class ProjectRepository {
       
       return project;
     } catch (error) {
-      throw new AppError('Failed to get project by ID', CONTEXT, error as Error);
+      throw new DatabaseError('Failed to get project by ID', CONTEXT, error as Error);
     }
   }
 
@@ -66,7 +66,7 @@ class ProjectRepository {
       Logger.info(CONTEXT, `Created project: ${project.name}`, { projectId: project.id });
       return project;
     } catch (error) {
-      throw new AppError('Failed to create project', CONTEXT, error as Error);
+      throw new DatabaseError('Failed to create project', CONTEXT, error as Error);
     }
   }
 
@@ -83,7 +83,7 @@ class ProjectRepository {
       Logger.info(CONTEXT, `Updated project: ${project.name}`, { projectId: project.id });
       return project;
     } catch (error) {
-      throw new AppError('Failed to update project', CONTEXT, error as Error);
+      throw new DatabaseError('Failed to update project', CONTEXT, error as Error);
     }
   }
 
@@ -96,7 +96,7 @@ class ProjectRepository {
       this.projects.value = this.projects.value.filter(p => p.id !== id);
       Logger.info(CONTEXT, `Deleted project`, { projectId: id });
     } catch (error) {
-      throw new AppError('Failed to delete project', CONTEXT, error as Error);
+      throw new DatabaseError('Failed to delete project', CONTEXT, error as Error);
     }
   }
 

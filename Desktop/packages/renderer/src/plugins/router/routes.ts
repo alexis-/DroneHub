@@ -1,4 +1,6 @@
-export const routes = [
+import type { RouteRecordRaw } from 'vue-router';
+
+export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/map' },
   {
     path: '/',
@@ -14,22 +16,4 @@ export const routes = [
       },
     ],
   },
-  // {
-  //   path: '/',
-  //   component: () => import('@/layouts/blank.vue'),
-  //   children: [
-  //     {
-  //       path: 'login',
-  //       component: () => import('@/pages/login.vue'),
-  //     },
-  //     {
-  //       path: 'register',
-  //       component: () => import('@/pages/register.vue'),
-  //     },
-  //     {
-  //       path: '/:pathMatch(.*)*',
-  //       component: () => import('@/pages/[...error].vue'),
-  //     },
-  //   ],
-  // },
 ]

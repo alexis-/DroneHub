@@ -1,6 +1,4 @@
-import 'reflect-metadata';
-import { AppDataSource } from "./connection";
-
+import { AppDataSource } from "./connection.js";
 const CONTEXT = 'Database';
 
 export async function initializeDatabase() {

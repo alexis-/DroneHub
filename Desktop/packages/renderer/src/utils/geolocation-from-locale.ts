@@ -1,8 +1,8 @@
-import { getLocaleCountryCode } from '#preload';
-import { Logger } from '@/services/logger.service';
-import { AppError } from '@/utils/errors/app-error';
+import { getLocaleCountryCode } from '@vite-electron-builder/preload';
+import { AppError } from '@dhlib/models/app-errors';
 import { countries } from '@/utils/data/countries';
-import type { GetLocationSuccessCallback, GetLocationErrorCallback } from '@/types/geolocation';
+import type { GetLocationSuccessCallback, GetLocationErrorCallback } from '@/models/interfaces/IGetLocationCallbacks';
+import { Logger } from '@/services/logger.service';
 
 const CONTEXT = 'GeolocationFromLocale';
 
@@ -25,9 +25,15 @@ export default async function getLocationFromLocale(
     
     successCallback(countryData.latitude, countryData.longitude);
   } catch (error) {
+    if (errorCallback) {
+      errorCallback(error);
+      return;
+    }
+
     if (error instanceof AppError) {
       throw error;
     }
+    
     throw new AppError('Failed to get location from locale', CONTEXT, error as Error);
   }
 }

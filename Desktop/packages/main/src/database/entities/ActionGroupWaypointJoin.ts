@@ -1,7 +1,7 @@
 import { Entity, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index, PrimaryGeneratedColumn } from "typeorm";
-import type { Waypoint } from "./Waypoint";
-import type { ActionGroup } from "./ActionGroup";
-import type { IActionGroupWaypointJoin } from '@shared/database/entities/IActionGroupWaypointJoin';
+import type { Waypoint } from "./Waypoint.js";
+import type { ActionGroup } from "./ActionGroup.js";
+import type { IActionGroupWaypointJoin } from '@shared/database/entities/IActionGroupWaypointJoin.js';
 
 @Entity("ActionGroupWaypointJoinTable")
 @Index(["waypoint", "actionGroup"])

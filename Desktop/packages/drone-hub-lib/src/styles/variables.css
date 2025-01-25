@@ -1,0 +1,188 @@
+/* Drone Hub Design System Variables
+ * This file contains all design tokens used throughout the application.
+ * Colors are defined in RGB format to support Tailwind's opacity modifiers.
+ * All measurements use rem units for consistent scaling with user preferences.
+ */
+
+ :root {
+  /* Theme Configuration
+   * Used for smooth transitions between themes
+   */
+  --theme-transition-duration: 200ms;
+  --theme-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Colors - Primary
+   * Main brand colors used for primary UI elements
+   * Hover states use a lighter shade for better interaction feedback
+   */
+  --color-primary: #1C3D5A; /* Deep navy blue */
+  --color-primary-hover: shiftHex(#1C3D5A, 0.10); /* Lighter navy blue */
+  --color-primary-rgb: hexToRgb(#1C3D5A); 
+  --color-primary-hover-rgb: hexToRgb(shiftHex(#1C3D5A, 0.10));
+
+  /* Colors - surface
+   * Used for backgrounds and non-primary UI elements
+   * Surface should provide good contrast with primary colors
+   */
+  --color-surface: #336496; /* Deep navy blue */
+  --color-surface-hover: shiftHex(#336496, 0.10);
+  --color-surface-rgb: hexToRgb(#336496);
+  --color-surface-hover-rgb: hexToRgb(shiftHex(#336496, 0.10));
+
+  /* Colors - Accent
+   * Used for highlighting important elements and actions
+   * Rich gold color that complements the navy blue
+   */
+  --color-accent: #CDA434; /* Rich gold */
+  --color-accent-hover: shiftHex(#CDA434, 0.10); /* Brighter gold */
+  --color-accent-rgb: hexToRgb(#CDA434);
+  --color-accent-hover-rgb: hexToRgb(shiftHex(#CDA434, 0.10));
+
+  /* Colors - Text
+   * Text colors for different contexts
+   */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #D1D5DB;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  
+  /* Colors - Border
+   * Border colors for different contexts
+   */
+  --color-border-light: #F1F3F5; /* Very light, subtle border */
+  --color-border-medium: #D1D5DB; /* Medium, visible border */
+  --color-border-heavy: #6B7280; /* Strong, prominent border */
+
+  /* Colors - Shadow
+   * Shadow colors with opacity support
+   */
+  --color-shadow: #000000;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px rgb(0 0 0 / 0.1);
+
+  /* Typography - Font Family
+   * Noto Sans provides excellent readability across all sizes
+   * Sans-serif fallback for system fonts
+   */
+  --font-family-primary: "Noto Sans", sans-serif;
+
+  /* Typography - Font Sizes
+   * Modular scale for consistent type hierarchy
+   * Base size (1rem) = 16px
+   */
+  --font-size-xxs: 0.6rem;    /* 9.6px - Smallest text, use sparingly */
+  --font-size-xs: 0.75rem;    /* 12px - Small labels */
+  --font-size-sm: 0.875rem;   /* 14px - Secondary text */
+  --font-size-base: 1rem;     /* 16px - Body text */
+  --font-size-lg: 1.125rem;   /* 18px - Large text */
+  --font-size-xl: 1.25rem;    /* 20px - Headings */
+  --font-size-2xl: 1.5rem;    /* 24px - Major headings */
+  --font-size-3xl: 1.875rem;  /* 30px - Large headings */
+
+  /* Typography - Line Heights
+   * Proportional line heights for different contexts
+   */
+  --line-height-tight: 1.25;  /* Compact text */
+  --line-height-normal: 1.5;  /* Body text */
+  --line-height-relaxed: 1.75; /* Long-form text */
+
+  /* Spacing - Header Heights
+   * Responsive heights for the main header
+   * Smaller on mobile for better space usage
+   */
+  --spacing-header: 3.75rem;        /* 60px - Desktop */
+  --spacing-header-tablet: 3.125rem; /* 50px - Tablet */
+  --spacing-header-mobile: 2.8125rem; /* 45px - Mobile */
+  --spacing-statusBar: 2rem;
+
+  /* Spacing - Base Units
+   * Consistent spacing scale for margins and padding
+   * Based on 4px (0.25rem) increments
+   */
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-5: 1.25rem;  /* 20px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-8: 2rem;     /* 32px */
+  --spacing-9: 2.25rem;  /* 36px */
+  --spacing-10: 2.5rem;  /* 40px */
+  --spacing-11: 2.75rem; /* 44px */
+  --spacing-13: 3.25rem; /* 52px */
+  --spacing-15: 3.75rem; /* 60px */
+  --spacing-17: 4.25rem; /* 68px */
+  --spacing-18: 4.5rem;  /* 72px */
+  --spacing-19: 4.75rem; /* 76px */
+
+  /* Effects - Shadows
+   * Subtle shadows for depth and elevation
+   * Uses black with low opacity for natural look
+   */
+  --shadow-sm: 0 0.125rem 0.25rem rgb(var(--color-black) / 0.1);
+  --shadow-md: 0 0.125rem 0.5rem rgb(var(--color-black) / 0.15);
+
+  /* Effects - Transitions
+   * Smooth transitions for interactive elements
+   * Fast for subtle changes, normal for larger ones
+   */
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 250ms;
+  --transition-timing-function: ease-in-out;
+}
+
+/* Dark Theme Configuration
+ * Using deep dark primary colors with high contrast accents
+ * All colors maintain WCAG 2.1 AA contrast ratios
+ */
+:root[data-theme="dark"] {
+  /* Colors - Primary
+   * Deep dark primary colors for main surfaces
+   */
+  --color-primary: #293649; /* Deep navy */
+  --color-primary-hover: shiftHex(#293649, 0.10);
+  --color-primary-rgb: hexToRgb(#293649);
+  --color-primary-hover-rgb: hexToRgb(shiftHex(#293649, 0.10));
+
+  /* Colors - Surface
+   * Rich dark blue that echoes the light theme's navy
+   */
+  --color-surface: #0D1117; /* Deep charcoal */
+  --color-surface-hover: shiftHex(#0D1117, 0.15);
+  --color-surface-rgb: hexToRgb(#0D1117);
+  --color-surface-hover-rgb: hexToRgb(shiftHex(#0D1117, 0.15));
+
+  /* Colors - Accent
+   * Warm gold accent that maintains consistency with light theme
+   */
+  --color-accent: #B38F2D; /* Deep gold */
+  --color-accent-hover: shiftHex(#B38F2D, 0.10); /* Brighter gold */
+  --color-accent-rgb: hexToRgb(#B38F2D);
+  --color-accent-hover-rgb: hexToRgb(shiftHex(#B38F2D, 0.10));
+
+  /* Colors - Text
+   * High contrast text colors for readability
+   */
+  --color-text-primary: #FFFFFF; /* Main text */
+  --color-text-secondary: #8B949E; /* Secondary text */
+  --color-text-tertiary: #586069; /* Muted text */
+  --color-text-disabled: #444C56; /* Disabled text */
+  --color-text-inverse: #FFFFFF; /* Inverse text */
+
+  /* Colors - Border
+   * Subtle borders for separation
+   */
+  --color-border-light: #262C33; /* Subtle dark border */
+  --color-border-medium: #444C56; /* Medium dark border */
+  --color-border-heavy: #6B7280; /* Strong dark border */
+
+  /* Colors - Shadow
+   * Subtle shadows for depth
+   */
+  --color-shadow: #000000;
+  --shadow-sm: 0 1px 2px rgb(var(--color-shadow) / 0.1);
+  --shadow-md: 0 4px 6px rgb(var(--color-shadow) / 0.15);
+  --shadow-lg: 0 8px 12px rgb(var(--color-shadow) / 0.2);
+}

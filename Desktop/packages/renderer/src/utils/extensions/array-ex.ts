@@ -1,6 +1,25 @@
-interface Array<T> {
-  first(predicate?: (value: T) => boolean): T;
-  firstOrDefault(predicate?: (value: T) => boolean, defaultValue?: T | null): T | null;
+export {};
+
+/**
+ * Extends the Array prototype with additional utility methods
+ */
+
+declare global {
+  interface Array<T> {
+    /**
+     * Returns the first element of the array that satisfies the provided predicate.
+     * If no predicate is provided, returns the first element of the array.
+     * @throws Error if the array is empty or no element satisfies the predicate
+     */
+    first(predicate?: (value: T) => boolean): T;
+
+    /**
+     * Returns the first element of the array that satisfies the provided predicate,
+     * or a default value if no element is found.
+     * If no predicate is provided, returns the first element or the default value.
+     */
+    firstOrDefault(predicate?: (value: T) => boolean, defaultValue?: T | null): T | null;
+  }
 }
 
 Array.prototype.first = function <T>(this: T[], predicate?: (value: T) => boolean): T {

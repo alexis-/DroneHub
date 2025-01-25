@@ -1,0 +1,35 @@
+{
+  "name": "@mjosdrone/dhlib",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {},
+  "imports": {
+    "#*": [
+      "./src/*",
+      "./src/*.ts"
+    ]
+  },
+  "types": "types/type-index.d.ts",
+  "dependencies": {
+    "@material-symbols/font-400": "^0.27.2",
+    "cesium": "^1.125.0",
+    "class-transformer": "^0.5.1",
+    "mitt": "^3.0.1",
+    "ol": "^10.3.0",
+    "pinia": "^2.3.0",
+    "reflect-metadata": "^0.2.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "xml-class-transformer": "^2.3.0"
+  },
+  "devDependencies": {
+    "@vue/tsconfig": "^0.7.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "postcss-nesting": "^13.0.1",
+    "typescript": "^5.7.2",
+    "unplugin-vue-components": "^28.0.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

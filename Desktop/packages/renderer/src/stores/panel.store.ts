@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { shallowRef, ref } from 'vue';
 import { Logger } from '@/services/logger.service';
-import type { PanelDefinition } from '@/types/panel-definition';
+import type { PanelDefinition } from '@/models/ui/panel-definition';
 
 const CONTEXT = 'PanelStore';
 

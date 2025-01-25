@@ -1,13 +1,11 @@
 import type { App } from 'vue'
 import { 
   registerRouter, 
-  registerVuetify, 
   registerStore, 
-  registerStyles,
   setupKeyboardShortcuts 
 } from '@/plugins'
 import { Logger } from '@/services/logger.service'
-import { AppError } from '@/utils/errors/app-error'
+import { AppError } from '@mjosdrone/dhlib/models/app-errors'
 
 const CONTEXT = 'PluginManager'
 
@@ -16,9 +14,7 @@ export function registerPlugins(app: App) {
     Logger.info(CONTEXT, 'Initializing plugins')
     
     registerRouter(app)
-    registerVuetify(app)
     registerStore(app)
-    registerStyles()
     setupKeyboardShortcuts()
     
     Logger.info(CONTEXT, 'All plugins initialized successfully')

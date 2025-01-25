@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import type { ActionActionGroupJoin } from "./ActionActionGroupJoin";
-import type { ActionGroupWaypointJoin } from "./ActionGroupWaypointJoin";
-import type { IActionGroup } from '@shared/database/entities/IActionGroup';
+import type { ActionActionGroupJoin } from "./ActionActionGroupJoin.js";
+import type { ActionGroupWaypointJoin } from "./ActionGroupWaypointJoin.js";
+import type { IActionGroup } from '@shared/database/entities/IActionGroup.js';
 
 @Entity("ActionGroups")
 export class ActionGroup implements IActionGroup {

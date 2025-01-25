@@ -1,4 +1,4 @@
-import type { PanelDefinition } from '@/types/panel-definition';
+import type { PanelDefinition } from '@/models/ui/panel-definition';
 
 export const ProjectsPanel: PanelDefinition = {
   id: 'Projects',

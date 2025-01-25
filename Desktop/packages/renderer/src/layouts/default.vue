@@ -1,9 +1,9 @@
 <template>
-  <v-main class="d-flex">
+  <div class="d-flex">
     <RouterView />
 
     <div class="version-container">DJI Mission Creator v{{ APP_VERSION }}</div>
-  </v-main>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -23,7 +23,6 @@ const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 }
 
 .version-container {
-  @include floating-panel;
   position: fixed;
   bottom: var(--spacing-sm);
   left: 50%;

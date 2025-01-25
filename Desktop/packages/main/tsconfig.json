@@ -1,25 +1,24 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "allowSyntheticDefaultImports": true,
+    "module": "NodeNext",
     "target": "ESNext",
-    "sourceMap": true,
-    "moduleResolution": "Node",
+    "sourceMap": false,
+    "moduleResolution": "NodeNext",
     "skipLibCheck": true,
     "strict": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
     "types": ["node"],
     "baseUrl": ".",
+    "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"],
+      "@vite-electron-builder/preload": ["../preload"],
+      "@vite-electron-builder/renderer": ["../renderer"],
       "@shared/*": ["../shared/src/*"]
-    },
-    "lib": ["ESNext"]
+    }
   },
-  "include": ["src/**/*.ts", "../../global_types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "../shared/src/types/**/*.d.ts"],
   "exclude": ["**/*.spec.ts", "**/*.test.ts"]
 }

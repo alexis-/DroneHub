@@ -1,7 +1,7 @@
 import { Entity, PrimaryColumn, OneToMany } from "typeorm";
-import type { ActionActionGroupJoin } from "./ActionActionGroupJoin";
-import type { ActionActionParamJoin } from "./ActionActionParamJoin";
-import type { IAction } from '@shared/database/entities/IAction';
+import type { ActionActionGroupJoin } from "./ActionActionGroupJoin.js";
+import type { ActionActionParamJoin } from "./ActionActionParamJoin.js";
+import type { IAction } from '@shared/database/entities/IAction.js';
 
 @Entity("Actions")
 export class Action implements IAction {

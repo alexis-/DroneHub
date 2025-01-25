@@ -1,0 +1,17 @@
+@import '@dhlib/styles/index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0;
+}
+
+html {
+  font-size: 12px;
+}
+
+body {
+  margin: 0;
+}

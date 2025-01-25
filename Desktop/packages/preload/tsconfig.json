@@ -1,18 +1,21 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "allowSyntheticDefaultImports": true,
+    "module": "NodeNext",
     "target": "ESNext",
     "sourceMap": false,
-    "moduleResolution": "Node",
+    "moduleResolution": "NodeNext",
     "skipLibCheck": true,
     "strict": true,
     "isolatedModules": true,
     "types": ["node"],
     "baseUrl": ".",
+    "outDir": "./dist",
     "paths": {
+      "@vite-electron-builder/*": ["../*"],
       "@shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "../../global_types/**/*.d.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.test.ts"],
+  "include": ["src/**/*.ts", "../shared/src/types/**/*.d.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"]
 }

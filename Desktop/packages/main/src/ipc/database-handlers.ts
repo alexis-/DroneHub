@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { DatabaseService } from '../services/database-service'
+import { DatabaseService } from '../services/database-service.js'
 
 const dbService = new DatabaseService()
 

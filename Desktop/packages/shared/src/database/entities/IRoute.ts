@@ -1,6 +1,6 @@
-import type { IProject } from './IProject';
-import type { IDroneType } from './IDroneType';
-import type { IWaypoint } from './IWaypoint';
+import type { IProject } from './IProject.js';
+import type { IDroneType } from './IDroneType.js';
+import type { IWaypoint } from './IWaypoint.js';
 
 export interface IRoute {
     id: number;

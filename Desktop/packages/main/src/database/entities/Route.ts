@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import type { Project } from "./Project";
-import type { DroneType } from "./DroneType";
-import type { Waypoint } from "./Waypoint";
-import type { IRoute } from '@shared/database/entities/IRoute';
+import type { Project } from "./Project.js";
+import type { DroneType } from "./DroneType.js";
+import type { Waypoint } from "./Waypoint.js";
+import type { IRoute } from '@shared/database/entities/IRoute.js';
 @Entity("Routes")
 export class Route implements IRoute {
     @PrimaryGeneratedColumn()

@@ -1,8 +1,8 @@
-import {httpGet} from './http';
-import {getGeoIp} from '#preload';
+import { httpGet } from '@dhlib/utils/http';
+import { getGeoIp } from '@vite-electron-builder/preload';
 import { Logger } from '@/services/logger.service';
-import { AppError } from '@/utils/errors/app-error';
-import type { GetLocationSuccessCallback, GetLocationErrorCallback } from '@/types/geolocation';
+import { AppError } from '@dhlib/models/app-errors';
+import type { GetLocationSuccessCallback, GetLocationErrorCallback } from '@/models/interfaces/IGetLocationCallbacks';
 
 interface IPifyResp {
   ip: string;
@@ -28,16 +28,20 @@ export default async function getGeolocationFromIp(
     const ip = await getPublicIP();
     
     if (!ip) {
-      Logger.warn(CONTEXT, 'No IP address obtained');
-      if (errorCallback) errorCallback();
+      if (errorCallback)
+        errorCallback('No IP address obtained');
+      else
+        Logger.warn(CONTEXT, 'No IP address obtained');
       return;
     }
 
     const geo = await getGeoIp(ip);
 
     if (!geo || !geo.ll) {
-      Logger.warn(CONTEXT, 'No geolocation data obtained', { ip });
-      if (errorCallback) errorCallback();
+      if (errorCallback)
+        errorCallback('No geolocation data obtained');
+      else
+        Logger.warn(CONTEXT, 'No geolocation data obtained', { ip });
       return;
     }
 
@@ -48,7 +52,9 @@ export default async function getGeolocationFromIp(
     
     successCallback(geo.ll[0], geo.ll[1]);
   } catch (error) {
+    if (errorCallback)
+      errorCallback(error);
+    else
     Logger.error(CONTEXT, 'Failed to get geolocation from IP', error);
-    if (errorCallback) errorCallback();
   }
 }

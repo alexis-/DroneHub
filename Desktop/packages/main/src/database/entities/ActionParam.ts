@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import type { ActionActionParamJoin } from "./ActionActionParamJoin";
-import type { IActionParam } from '@shared/database/entities/IActionParam';
+import type { ActionActionParamJoin } from "./ActionActionParamJoin.js";
+import type { IActionParam } from '@shared/database/entities/IActionParam.js';
 
 @Entity("ActionParams")
 export class ActionParam implements IActionParam {

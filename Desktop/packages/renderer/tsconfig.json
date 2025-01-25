@@ -1,34 +1,50 @@
 {
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "ESNext",
-    "sourceMap": false,
-    "moduleResolution": "Node",
-    "skipLibCheck": true,
-    "strict": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
     "baseUrl": ".",
+    "outDir": "./dist",
+    "target": "ES2022",
+    "lib": ["ES2023", "dom"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    
+    "useDefineForClassFields": true,
+    "experimentalDecorators": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+
+    /* Linting */
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedSideEffectImports": true,
+
     "paths": {
-      "#preload": ["../preload/src/index"],
+      "@vite-electron-builder/*": ["../*"],
+      "@shared/*": ["../shared/src/*"],
+      "@mjosdrone/dhlib/*": ["../drone-hub-lib/src/*"],
+      "@dhlib/*": ["../drone-hub-lib/src/*"],
       "@/*": ["./src/*"],
       "@assets/*": ["./assets/*"],
       "@ext/*": ["./src/utils/extensions/*"],
-      "@shared/*": ["../shared/src/*"],
       "@types/*": ["./src/types/*"],
       "@services/*": ["./src/services/*"],
       "@stores/*": ["./src/stores/*"],
       "@utils/*": ["./src/utils/*"]
     },
-    "lib": ["ESNext", "dom", "dom.iterable"]
+
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
   },
-  "include": [
-    "src/**/*.vue",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "types/**/*.d.ts",
-    "../../types/**/*.d.ts",
-    "../../types/map.ts"
-  ],
-  "exclude": ["**/*.spec.ts", "**/*.test.ts"]
+  "files": [],
+  "include": ["vite.config.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../drone-hub-lib/src/types/**/*.ts", "../shared/src/types/**/*.d.ts", "src/utils/geolocation-from-ip.ts", "src/utils/geolocation-from-locale.ts", "src/models/interfaces/IGetLocationCallbacks.ts"],
 }

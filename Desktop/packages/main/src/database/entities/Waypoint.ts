@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import type { Route } from "./Route";
-import type { ActionGroupWaypointJoin } from "./ActionGroupWaypointJoin";
-import type { IWaypoint } from '@shared/database/entities/IWaypoint';
+import type { Route } from "./Route.js";
+import type { ActionGroupWaypointJoin } from "./ActionGroupWaypointJoin.js";
+import type { IWaypoint } from '@shared/database/entities/IWaypoint.js';
 @Entity("Waypoints")
 export class Waypoint implements IWaypoint {
     @PrimaryGeneratedColumn()

@@ -1,0 +1,8 @@
+@layer base {
+  /* Base styles */
+  html, body { 
+      @apply h-full w-full overflow-hidden p-0 m-0 font-sans;
+      background-color: rgb(var(--color-bg-base));
+      color: rgb(var(--color-text-primary));
+  }
+}

@@ -1,18 +1,9 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-interface LogEntry {
-  timestamp: string;
-  level: LogLevel;
-  context: string;
-  message: string;
-  data?: any;
-  caller?: string;
-}
+import type { ILoggerService, LogLevel, LogEntry } from '@vite-electron-builder/drone-hub-lib/src/models/interfaces/ILoggerService';
 
 /**
  * Centralized logging service
  */
-class LoggerService {
+class LoggerService implements ILoggerService {
   private logs: LogEntry[] = [];
   private maxLogs = 1000;
 

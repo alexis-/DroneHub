@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Route } from "./Route";
-import type { IDroneType } from '@shared/database/entities/IDroneType';
+import { Route } from "./Route.js";
+import type { IDroneType } from '@shared/database/entities/IDroneType.js';
 @Entity("DroneTypes")
 export class DroneType implements IDroneType {
     @PrimaryGeneratedColumn()

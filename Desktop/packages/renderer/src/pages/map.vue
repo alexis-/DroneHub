@@ -1,25 +1,27 @@
 <template>
   <div class="map-page">
-    <open-layers-map class="map-view" :map-id="MapIds.Main" />
-    <PanelContainer />
+    <!-- <PanelContainer /> -->
 
-    <component 
+    <!-- <OpenLayersMap class="map-view" :mapId="MapIds.Main" /> -->
+    <CesiumMap class="map-view" :mapId="MapIds.Main" />
+
+    <!-- <component 
       v-if="toolStore.activeToolComponent"
       :is="toolStore.activeToolComponent"
       v-bind="toolStore.activeToolProps"
       class="tool-component"
-    />
+    /> -->
   </div>
 </template>
 
 <script lang="ts" setup>
 import { onMounted } from 'vue';
-import OpenLayersMap from '@/components/open-layers-map.vue';
-import PanelContainer from '@/components/panels/PanelContainer.vue';
-import { Panels } from '@/components/panels/panels-index';
-import { useToolStore } from '@/stores/tool.store';
-import { usePanelStore } from '@/stores/panel.store';
-import { useMapFeaturesStore } from '@/stores/map-features.store';
+// import OpenLayersMap from '@dhlib/components/open-layers/OlMap.vue';
+import CesiumMap from '@dhlib/components/cesium/CesiumMap.vue';
+// import PanelContainer from '@/components/panels/PanelContainer.vue';
+// import { Panels } from '@/components/panels/panels-index';
+// import { useToolStore } from '@/stores/tool.store';
+// import { usePanelStore } from '@/stores/panel.store';
 import { Logger } from '@/services/logger.service';
 import { MapIds } from '@/config/map-config';
 import { projectRepository } from '@/repositories/project.repository';
@@ -29,19 +31,17 @@ import { projectRepository } from '@/repositories/project.repository';
 // const flySafe = new FlySafe();
 const CONTEXT = 'MapPage';
 
-const toolStore = useToolStore();
-const panelStore = usePanelStore();
-const mapFeaturesStore = useMapFeaturesStore();
+// const toolStore = useToolStore();
+// const panelStore = usePanelStore();
 
 // Initialize default tool
 onMounted(async () => {
   try {
     Logger.debug(CONTEXT, 'Initializing map page');
-    toolStore.activateTool('rectangle-selection');
-    panelStore.showPanel(Panels.Projects);
+    // toolStore.activateTool('rectangle-selection');
+    // panelStore.showPanel(Panels.Projects);
     
     const projects = await projectRepository.getAll();
-    await mapFeaturesStore.setProjectMarkers(MapIds.Main, projects);
     Logger.info(CONTEXT, `Loaded ${projects.length} projects and set markers`);
   } catch (error) {
     Logger.error(CONTEXT, 'Failed to initialize map page', error);
@@ -49,7 +49,7 @@ onMounted(async () => {
 });
 </script>
 
-<style lang="scss">
+<style>
 .map-page {
   position: relative;
   width: 100%;

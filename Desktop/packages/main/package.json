@@ -1,0 +1,29 @@
+{
+  "name": "@vite-electron-builder/main",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@vite-electron-builder/preload": "*",
+    "@vite-electron-builder/renderer": "*",
+    "doc999tor-fast-geoip": "^1.1.190",
+    "electron-updater": "6.3.9",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@vite-electron-builder/electron-versions": "*",
+    "electron-devtools-installer": "^3.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.6"
+  }
+}

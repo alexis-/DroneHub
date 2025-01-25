@@ -1,7 +1,7 @@
 import { Entity, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index, PrimaryGeneratedColumn } from "typeorm";
-import type { Action } from "./Action";
-import type { ActionGroup } from "./ActionGroup";
-import type { IActionActionGroupJoin } from '@shared/database/entities/IActionActionGroupJoin';
+import type { Action } from "./Action.js";
+import type { ActionGroup } from "./ActionGroup.js";
+import type { IActionActionGroupJoin } from '@shared/database/entities/IActionActionGroupJoin.js';
 
 @Entity("ActionActionGroupJoinTable")
 @Index(["action", "actionGroup"])

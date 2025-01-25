@@ -1,5 +1,5 @@
-import type { IActionActionGroupJoin } from './IActionActionGroupJoin';
-import type { IActionGroupWaypointJoin } from './IActionGroupWaypointJoin';
+import type { IActionActionGroupJoin } from './IActionActionGroupJoin.js';
+import type { IActionGroupWaypointJoin } from './IActionGroupWaypointJoin.js';
 
 export interface IActionGroup {
     id: number;

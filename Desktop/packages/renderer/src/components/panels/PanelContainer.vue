@@ -91,7 +91,7 @@ function toggleCollapse() {
 }
 </script>
 
-<style lang="scss">
+<style>
 .panel-container {
   @include floating-panel;
   position: absolute;

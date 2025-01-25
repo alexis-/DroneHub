@@ -1,5 +1,5 @@
-import type { IWaypoint } from './IWaypoint';
-import type { IActionGroup } from './IActionGroup';
+import type { IWaypoint } from './IWaypoint.js';
+import type { IActionGroup } from './IActionGroup.js';
 
 export interface IActionGroupWaypointJoin {
     id: number;

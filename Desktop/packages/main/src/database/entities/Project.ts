@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Route } from "./Route";
-import type { IProject } from '@shared/database/entities/IProject';
+import { Route } from "./Route.js";
+import type { IProject } from '@shared/database/entities/IProject.js';
 
 @Entity("Projects")
 export class Project implements IProject {

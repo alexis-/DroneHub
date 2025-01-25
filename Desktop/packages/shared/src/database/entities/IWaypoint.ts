@@ -1,5 +1,5 @@
-import type { IRoute } from './IRoute';
-import type { IActionGroupWaypointJoin } from './IActionGroupWaypointJoin';
+import type { IRoute } from './IRoute.js';
+import type { IActionGroupWaypointJoin } from './IActionGroupWaypointJoin.js';
 
 export interface IWaypoint {
     id: number;

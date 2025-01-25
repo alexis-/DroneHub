@@ -1,5 +1,5 @@
-import { AppDataSource } from '../database/connection'
-import { Project, Route, DroneType, Waypoint, Action, ActionGroup, ActionParam, ActionActionGroupJoin, ActionGroupWaypointJoin, ActionActionParamJoin } from '../database/entities'
+import { AppDataSource } from '../database/connection.js'
+import { Project, Route, DroneType, Waypoint, Action, ActionGroup, ActionParam, ActionActionGroupJoin, ActionGroupWaypointJoin, ActionActionParamJoin } from '../database/entities/index.js';
 
 export class DatabaseService {
   private getProjectRelations(loadRelations?: boolean): string[] {

@@ -1,7 +1,8 @@
-import { Action, ActionParam } from "@/database/entities";
+import type { IAction } from './IAction.js';
+import type { IActionParam } from './IActionParam.js';
 
 export interface IActionActionParamJoin {
     id: number;
-    action: Action;  // actionActuatorFunc
-    actionParam: ActionParam;  // id
-} 
+    action: IAction;  // actionActuatorFunc
+    actionParam: IActionParam;  // id
+}

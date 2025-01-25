@@ -1,5 +1,5 @@
-import { AppState } from '@/types/app-state';
-import { StateTransitionError } from '@/utils/errors/app-error';
+import { AppState } from '@/models/ui/app-state';
+import { StateTransitionError } from '@/models/errors/app-error';
 import { Logger } from './logger.service';
 
 const CONTEXT = 'StateValidator';

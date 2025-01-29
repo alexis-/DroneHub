@@ -22,7 +22,7 @@ import { useViewModel } from '#composables/useViewModel.ts';
 import { MapError } from '#models/app-errors.ts';
 import type { ILoggerService } from '#models/interfaces/ILoggerService.js';
 import { OpenLayersViewModel } from '#models/viewmodels/open-layers/OlVM.ts';
-import { mapCoordinatesOpenLayers } from '#data/map-coordinates.ts';
+import { mapCoordinates } from '#data/map-coordinates.ts';
 import { OlMapLayers } from '#data/map-layers.ts';
 import { LoggerServiceKey } from '#models/injection-keys.ts';
 
@@ -43,7 +43,7 @@ const _vm = useViewModel<OpenLayersViewModel>(
 
 
 // TODO: Load from config
-const defaultCenter = mapCoordinatesOpenLayers.Oslo; // Oslo coordinates
+const defaultCenter = mapCoordinates.Oslo; // Oslo coordinates
 const defaultZoom = 8;
 
 onMounted(async () => {

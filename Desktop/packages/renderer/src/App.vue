@@ -1,16 +1,18 @@
 <template>
   <div>
-    <router-view />
+    <!-- <router-view /> -->
+    <DockExample />
     
-    <Toast position="bottom-center" />
+    <!-- <Toast position="bottom-center" /> -->
   </div>
 </template>
 
 <script lang="ts" setup>
 import { type Ref, ref, provide, onMounted} from 'vue';
 
-import { AppError } from '@mjosdrone/dhlib/models/app-errors';
-import type { IProject } from '@shared/database/entities/IProject';
+import DockExample from '@dhlib/components/ui/dock/examples/DockExample.vue'
+import { AppError } from '@dhlib/models/app-errors';
+import type { IProject } from '@dhlib/models/core/interfaces/IProject';
 import { projectRepository } from '@/repositories/project.repository';
 
 const CONTEXT = 'App';

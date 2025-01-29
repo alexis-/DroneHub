@@ -16,6 +16,7 @@
     "paths": {
       "@vite-electron-builder/preload": ["../preload"],
       "@vite-electron-builder/renderer": ["../renderer"],
+      "@mjosdrone/dhlib/*": ["../drone-hub-lib/src/*"],
       "@shared/*": ["../shared/src/*"]
     }
   },

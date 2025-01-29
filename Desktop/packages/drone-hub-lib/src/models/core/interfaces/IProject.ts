@@ -1,4 +1,4 @@
-import type { IRoute } from './IRoute.js';
+import type { IZone } from './missions/IZone.js';
 
 export interface IProject {
     id: number;
@@ -8,7 +8,7 @@ export interface IProject {
     version: string;
     description?: string;
     settings?: Record<string, any>;
-    routes?: IRoute[];
+    zones?: IZone[];
     createdAt: Date;
     updatedAt: Date;
 }

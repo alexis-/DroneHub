@@ -5,15 +5,15 @@ export interface LogEntry {
   level: LogLevel;
   context: string;
   message: string;
-  data?: any;
+  data?: any[];
   caller?: string;
 }
 
 export interface ILoggerService {
-  debug(context: string, message: string, data?: any)
-  info(context: string, message: string, data?: any)
-  warn(context: string, message: string, data?: any)
-  error(context: string, message: string, error?: Error | any)
+  debug(context: string, message: string, ...data: any[])
+  info(context: string, message: string, ...data: any[])
+  warn(context: string, message: string, ...data: any[])
+  error(context: string, message: string, error?: Error | any, ...data: any[])
   getLogs(): LogEntry[]
   clearLogs()
 }

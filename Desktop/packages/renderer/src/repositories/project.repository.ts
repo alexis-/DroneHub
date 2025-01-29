@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { databaseApi } from '@vite-electron-builder/preload';
 import { Logger } from '@/services/logger.service';
 import { DatabaseError } from '@/models/errors/app-error';
-import type { IProject } from '@shared/database/entities/IProject';
+import type { IProject } from '@dhlib/models/core/interfaces/IProject';
 
 const CONTEXT = 'ProjectRepository';
 

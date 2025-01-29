@@ -1,0 +1,156 @@
+# Project Description
+
+**Drone Hub Desktop** is an application designed for drone mission planning and data management. 
+
+Drone Hub Desktop uses:
+- Node.js v22
+- npm
+- Electron v30
+- Electron Builder v25
+- Vite
+- TypeORM
+- better-sqlite3
+- Vue v3
+- Vue Router
+- Pinia
+- Mitt
+- Open Layers
+- Cesium
+- ol-cesium to bridge OpenLayers and Cesium
+- Tailwind CSS v3
+- Material Symbols (e.g., `<span class="material-symbols-outlined">face</span>`)
+
+Drone Hub Desktop shares functionality with a web portal via **DHLib**. To accomodate different environments, shared code must use design patterns like services, repositories, injection, and abstraction layers to accommodate environment-specific implementations. For example:
+
+- **Data Management:** Desktop uses a local database, while the web portal interacts through an API.
+- **AI**: Inferences are run locally on desktop, through an API on the web portal.
+- **Geolocation:** Handled differently in Electron versus the browser.
+
+**Desktop App:**: Used by employees to create drone missions, manage resulting data, and publish them to the web portal.
+**Web Portal:**: Enables customers to view, customize and share data, collaborate with annotations and comments, and run AI inferences on the data.
+
+
+## Project Structure
+
+The project is organized as a **monorepo** with independent packages, each having its own tech stack, tests, dependencies, and frameworks.
+
+### Core Packages
+
+- **[`packages/electron-versions`](packages/electron-versions):** Helper functions to retrieve versions of internal Electron components.
+- **[`packages/main`](packages/main):** Implements Electron’s main script, handling initialization (e.g., browser windows) and low-level logic (database, filesystem).
+- **[`packages/preload`](packages/preload):** Implements Electron’s preload scripts.
+- **[`packages/renderer`](packages/renderer):** Electron’s renderer process, following a standard Vue.js structure.
+- **[`packages/shared`](packages/shared):** Shared code between main, preload, and renderer packages.
+
+#### Renderer Package
+
+This is one of the packages where most of the work will be done. The project follows a standard Vue.js folder structure:
+
+```
+packages/renderer/
+├── assets/
+├── dist/
+├── node_modules/
+├── public/
+├── src/
+│   ├── components/
+│   ├── composables/
+│   ├── config/
+│   ├── data/
+│   ├── layouts/
+│   ├── models/
+│   │   └── viewmodels/
+│   ├── pages/
+│   ├── plugins/
+│   ├── repositories/
+│   ├── services/
+│   ├── states/
+│   ├── stores/
+│   ├── styles/
+│   └── utils/
+├── App.vue
+├── main.ts
+├── index.html
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.js
+├── tsconfig.json
+└── vite.config.ts
+```
+
+- Renderer relies on library packages and imports logic, themes and variables from DHLib.
+- Dependency injections required by libraries are registered in main.ts (eg. logging, data layer) using Vue's `provide/inject`.
+- Business logic is located in `src/services`
+- Data-layer logic (CRUD) is located in `src/repositories`
+
+### Vue Workflow
+
+Follows the MVVM paradigm with View Models decoupled from Vue components, located in `src/models/viewmodels`. This enables us to preserve state across page changes in the global scope.
+
+### Library packges
+
+- **[`packages/drone-hub-lib`](packages/drone-hub-lib):**
+  - Shared logic and UI components for both Drone Hub Desktop and the web portal.
+  - Follows the standard Vue.js structure, excluding host-specific files like `main.ts`.
+
+#### Drone Hub Library (DHLib)
+
+Uses absolute import with `'#folder/.../file.ext'`.
+
+- **Dependencies & Injection:**
+  - High-level services (e.g., Logging, Store, Services) are implemented in the host application and injected into DHLib.
+  - Interfaces define contracts between the host and DHLib.
+
+- **Logic**: Environment-independent logic is 100% implemented in dhlib.
+
+- **UI Components:**
+  - Common themes and UI components are defined in `tailwind.config.js` and `src/styles/variables.css`.
+  - UI components (buttons, inputs, etc.) are located in `src/components/ui/` to separate them from business logic.
+
+- **Features:**
+  - 2D Maps (OpenLayers)
+  - 3D Maps (Cesium)
+  - 3D Point Clouds (potree or Cesium)
+  - 3D Models (Cesium)
+  - Media Handling (images, videos, panoramas, virtual tours)
+  - AI Detection and Segmentation
+  - Annotations and Comments (all modalities)
+
+- **Core Model Structure:**
+
+Organized within `models/core/` and further divided by functionality. For example (illustration only):
+
+models/core/interfaces/
+│── IProject.ts
+├── missions/
+│   ├── IZone.ts
+│   ├── IRoute.ts
+│   ├── IDroneType.ts
+│   └── ... other mission-related interfaces
+├── visualization/
+│   ├── IOrthomosaic.ts
+│   └── ... other visualization-related interfaces
+├── ai/
+│   └── ... other AI-related interfaces
+└── ... other models
+
+- **IProject**: Top-level representation of a customer project, encapsulating its drone mapping mission, resulting data, and associated metadata.
+- **IZone**: Specific area within a project.
+- **IRoute**: Individual drone flight path calcualted for a zone and drone type.
+- **IDroneType**: Specifications of different drone models.
+
+### Theming
+
+- **Framework:** Tailwind CSS is used for theming.
+- **Implementation:** Global theming and styles are defined in DHLib.
+- **Class Naming:** Complete class names are used to leverage Tailwind’s tree shaking.
+- **Color Categories:**
+  - Primary
+  - Surface
+  - Accent
+  - Text
+
+## Drone Technology
+
+WPML files are contained in an .kmz archive files and they define a drone mission route and its execution details using an extended version of KML. They contain mission configurations, waypoints, and actions and are tailored to a specific drone model. They are mapped to the IRoute interface and are saved 1:1 in json format within its `data` property.

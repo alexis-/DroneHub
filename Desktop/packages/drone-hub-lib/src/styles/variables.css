@@ -4,7 +4,7 @@
  * All measurements use rem units for consistent scaling with user preferences.
  */
 
- :root {
+:root {
   /* Theme Configuration
    * Used for smooth transitions between themes
    */
@@ -13,30 +13,89 @@
 
   /* Colors - Primary
    * Main brand colors used for primary UI elements
-   * Hover states use a lighter shade for better interaction feedback
    */
-  --color-primary: #1C3D5A; /* Deep navy blue */
-  --color-primary-hover: shiftHex(#1C3D5A, 0.10); /* Lighter navy blue */
-  --color-primary-rgb: hexToRgb(#1C3D5A); 
-  --color-primary-hover-rgb: hexToRgb(shiftHex(#1C3D5A, 0.10));
+  --color-primary: getColorPalette(#1C3D5A, DEFAULT); /* Royal blue */
+  --color-primary-hover: getColorPalette(#1C3D5A, hover);
+  --color-primary-100: getColorPalette(#1C3D5A, 100);
+  --color-primary-200: getColorPalette(#1C3D5A, 200);
+  --color-primary-300: getColorPalette(#1C3D5A, 300);
+  --color-primary-400: getColorPalette(#1C3D5A, 400);
+  --color-primary-500: getColorPalette(#1C3D5A, 500);
+  --color-primary-600: getColorPalette(#1C3D5A, 600);
+  --color-primary-700: getColorPalette(#1C3D5A, 700);
+  --color-primary-800: getColorPalette(#1C3D5A, 800);
+  --color-primary-900: getColorPalette(#1C3D5A, 900);
+  --color-primary-1000: getColorPalette(#1C3D5A, 1000);
+  --color-primary-rgb: getColorPaletteRgb(#1C3D5A, DEFAULT);
+  --color-primary-hover-rgb: getColorPaletteRgb(#1C3D5A, hover);
+  --color-primary-100-rgb: getColorPaletteRgb(#1C3D5A, 100);
+  --color-primary-200-rgb: getColorPaletteRgb(#1C3D5A, 200);
+  --color-primary-300-rgb: getColorPaletteRgb(#1C3D5A, 300);
+  --color-primary-400-rgb: getColorPaletteRgb(#1C3D5A, 400);
+  --color-primary-500-rgb: getColorPaletteRgb(#1C3D5A, 500);
+  --color-primary-600-rgb: getColorPaletteRgb(#1C3D5A, 600);
+  --color-primary-700-rgb: getColorPaletteRgb(#1C3D5A, 700);
+  --color-primary-800-rgb: getColorPaletteRgb(#1C3D5A, 800);
+  --color-primary-900-rgb: getColorPaletteRgb(#1C3D5A, 900);
+  --color-primary-1000-rgb: getColorPaletteRgb(#1C3D5A, 1000);
 
-  /* Colors - surface
+  /* Colors - Surface
    * Used for backgrounds and non-primary UI elements
    * Surface should provide good contrast with primary colors
    */
-  --color-surface: #336496; /* Deep navy blue */
-  --color-surface-hover: shiftHex(#336496, 0.10);
-  --color-surface-rgb: hexToRgb(#336496);
-  --color-surface-hover-rgb: hexToRgb(shiftHex(#336496, 0.10));
+  --color-surface: getColorPalette(#336496, DEFAULT); /* Deep navy blue */
+  --color-surface-hover: getColorPalette(#336496, hover);
+  --color-surface-100: getColorPalette(#336496, 100);
+  --color-surface-200: getColorPalette(#336496, 200);
+  --color-surface-300: getColorPalette(#336496, 300);
+  --color-surface-400: getColorPalette(#336496, 400);
+  --color-surface-500: getColorPalette(#336496, 500);
+  --color-surface-600: getColorPalette(#336496, 600);
+  --color-surface-700: getColorPalette(#336496, 700);
+  --color-surface-800: getColorPalette(#336496, 800);
+  --color-surface-900: getColorPalette(#336496, 900);
+  --color-surface-1000: getColorPalette(#336496, 1000);
+  --color-surface-rgb: getColorPaletteRgb(#336496, DEFAULT);
+  --color-surface-hover-rgb: getColorPaletteRgb(#336496, hover);
+  --color-surface-100-rgb: getColorPaletteRgb(#336496, 100);
+  --color-surface-200-rgb: getColorPaletteRgb(#336496, 200);
+  --color-surface-300-rgb: getColorPaletteRgb(#336496, 300);
+  --color-surface-400-rgb: getColorPaletteRgb(#336496, 400);
+  --color-surface-500-rgb: getColorPaletteRgb(#336496, 500);
+  --color-surface-600-rgb: getColorPaletteRgb(#336496, 600);
+  --color-surface-700-rgb: getColorPaletteRgb(#336496, 700);
+  --color-surface-800-rgb: getColorPaletteRgb(#336496, 800);
+  --color-surface-900-rgb: getColorPaletteRgb(#336496, 900);
+  --color-surface-1000-rgb: getColorPaletteRgb(#336496, 1000);
 
   /* Colors - Accent
    * Used for highlighting important elements and actions
    * Rich gold color that complements the navy blue
    */
-  --color-accent: #CDA434; /* Rich gold */
-  --color-accent-hover: shiftHex(#CDA434, 0.10); /* Brighter gold */
-  --color-accent-rgb: hexToRgb(#CDA434);
-  --color-accent-hover-rgb: hexToRgb(shiftHex(#CDA434, 0.10));
+  --color-accent: getColorPalette(#CDA434, DEFAULT); /* Rich gold */
+  --color-accent-hover: getColorPalette(#CDA434, hover);
+  --color-accent-100: getColorPalette(#CDA434, 100);
+  --color-accent-200: getColorPalette(#CDA434, 200);
+  --color-accent-300: getColorPalette(#CDA434, 300);
+  --color-accent-400: getColorPalette(#CDA434, 400);
+  --color-accent-500: getColorPalette(#CDA434, 500);
+  --color-accent-600: getColorPalette(#CDA434, 600);
+  --color-accent-700: getColorPalette(#CDA434, 700);
+  --color-accent-800: getColorPalette(#CDA434, 800);
+  --color-accent-900: getColorPalette(#CDA434, 900);
+  --color-accent-1000: getColorPalette(#CDA434, 1000);
+  --color-accent-rgb: getColorPaletteRgb(#CDA434, DEFAULT);
+  --color-accent-hover-rgb: getColorPaletteRgb(#CDA434, hover);
+  --color-accent-100-rgb: getColorPaletteRgb(#CDA434, 100);
+  --color-accent-200-rgb: getColorPaletteRgb(#CDA434, 200);
+  --color-accent-300-rgb: getColorPaletteRgb(#CDA434, 300);
+  --color-accent-400-rgb: getColorPaletteRgb(#CDA434, 400);
+  --color-accent-500-rgb: getColorPaletteRgb(#CDA434, 500);
+  --color-accent-600-rgb: getColorPaletteRgb(#CDA434, 600);
+  --color-accent-700-rgb: getColorPaletteRgb(#CDA434, 700);
+  --color-accent-800-rgb: getColorPaletteRgb(#CDA434, 800);
+  --color-accent-900-rgb: getColorPaletteRgb(#CDA434, 900);
+  --color-accent-1000-rgb: getColorPaletteRgb(#CDA434, 1000);
 
   /* Colors - Text
    * Text colors for different contexts
@@ -46,7 +105,7 @@
   --color-text-tertiary: #6B7280;
   --color-text-disabled: #9CA3AF;
   --color-text-inverse: #FFFFFF;
-  
+
   /* Colors - Border
    * Border colors for different contexts
    */
@@ -141,26 +200,86 @@
   /* Colors - Primary
    * Deep dark primary colors for main surfaces
    */
-  --color-primary: #293649; /* Deep navy */
-  --color-primary-hover: shiftHex(#293649, 0.10);
-  --color-primary-rgb: hexToRgb(#293649);
-  --color-primary-hover-rgb: hexToRgb(shiftHex(#293649, 0.10));
+  --color-primary: getColorPalette(#293649, DEFAULT); /* Deep navy */
+  --color-primary-hover: getColorPalette(#293649, hover);
+  --color-primary-100: getColorPalette(#293649, 100);
+  --color-primary-200: getColorPalette(#293649, 200);
+  --color-primary-300: getColorPalette(#293649, 300);
+  --color-primary-400: getColorPalette(#293649, 400);
+  --color-primary-500: getColorPalette(#293649, 500);
+  --color-primary-600: getColorPalette(#293649, 600);
+  --color-primary-700: getColorPalette(#293649, 700);
+  --color-primary-800: getColorPalette(#293649, 800);
+  --color-primary-900: getColorPalette(#293649, 900);
+  --color-primary-1000: getColorPalette(#293649, 1000);
+  --color-primary-rgb: getColorPaletteRgb(#293649, DEFAULT);
+  --color-primary-hover-rgb: getColorPaletteRgb(#293649, hover);
+  --color-primary-100-rgb: getColorPaletteRgb(#293649, 100);
+  --color-primary-200-rgb: getColorPaletteRgb(#293649, 200);
+  --color-primary-300-rgb: getColorPaletteRgb(#293649, 300);
+  --color-primary-400-rgb: getColorPaletteRgb(#293649, 400);
+  --color-primary-500-rgb: getColorPaletteRgb(#293649, 500);
+  --color-primary-600-rgb: getColorPaletteRgb(#293649, 600);
+  --color-primary-700-rgb: getColorPaletteRgb(#293649, 700);
+  --color-primary-800-rgb: getColorPaletteRgb(#293649, 800);
+  --color-primary-900-rgb: getColorPaletteRgb(#293649, 900);
+  --color-primary-1000-rgb: getColorPaletteRgb(#293649, 1000);
 
   /* Colors - Surface
    * Rich dark blue that echoes the light theme's navy
    */
-  --color-surface: #0D1117; /* Deep charcoal */
-  --color-surface-hover: shiftHex(#0D1117, 0.15);
-  --color-surface-rgb: hexToRgb(#0D1117);
-  --color-surface-hover-rgb: hexToRgb(shiftHex(#0D1117, 0.15));
+  --color-surface: getColorPalette(#0D1117, DEFAULT); /* Deep charcoal */
+  --color-surface-hover: getColorPalette(#0D1117, hover);
+  --color-surface-100: getColorPalette(#0D1117, 100);
+  --color-surface-200: getColorPalette(#0D1117, 200);
+  --color-surface-300: getColorPalette(#0D1117, 300);
+  --color-surface-400: getColorPalette(#0D1117, 400);
+  --color-surface-500: getColorPalette(#0D1117, 500);
+  --color-surface-600: getColorPalette(#0D1117, 600);
+  --color-surface-700: getColorPalette(#0D1117, 700);
+  --color-surface-800: getColorPalette(#0D1117, 800);
+  --color-surface-900: getColorPalette(#0D1117, 900);
+  --color-surface-1000: getColorPalette(#0D1117, 1000);
+  --color-surface-rgb: getColorPaletteRgb(#0D1117, DEFAULT);
+  --color-surface-hover-rgb: getColorPaletteRgb(#0D1117, hover);
+  --color-surface-100-rgb: getColorPaletteRgb(#0D1117, 100);
+  --color-surface-200-rgb: getColorPaletteRgb(#0D1117, 200);
+  --color-surface-300-rgb: getColorPaletteRgb(#0D1117, 300);
+  --color-surface-400-rgb: getColorPaletteRgb(#0D1117, 400);
+  --color-surface-500-rgb: getColorPaletteRgb(#0D1117, 500);
+  --color-surface-600-rgb: getColorPaletteRgb(#0D1117, 600);
+  --color-surface-700-rgb: getColorPaletteRgb(#0D1117, 700);
+  --color-surface-800-rgb: getColorPaletteRgb(#0D1117, 800);
+  --color-surface-900-rgb: getColorPaletteRgb(#0D1117, 900);
+  --color-surface-1000-rgb: getColorPaletteRgb(#0D1117, 1000);
 
   /* Colors - Accent
    * Warm gold accent that maintains consistency with light theme
    */
-  --color-accent: #B38F2D; /* Deep gold */
-  --color-accent-hover: shiftHex(#B38F2D, 0.10); /* Brighter gold */
-  --color-accent-rgb: hexToRgb(#B38F2D);
-  --color-accent-hover-rgb: hexToRgb(shiftHex(#B38F2D, 0.10));
+  --color-accent: getColorPalette(#B38F2D, DEFAULT); /* Brighter gold */
+  --color-accent-hover: getColorPalette(#B38F2D, hover);
+  --color-accent-100: getColorPalette(#B38F2D, 100);
+  --color-accent-200: getColorPalette(#B38F2D, 200);
+  --color-accent-300: getColorPalette(#B38F2D, 300);
+  --color-accent-400: getColorPalette(#B38F2D, 400);
+  --color-accent-500: getColorPalette(#B38F2D, 500);
+  --color-accent-600: getColorPalette(#B38F2D, 600);
+  --color-accent-700: getColorPalette(#B38F2D, 700);
+  --color-accent-800: getColorPalette(#B38F2D, 800);
+  --color-accent-900: getColorPalette(#B38F2D, 900);
+  --color-accent-1000: getColorPalette(#B38F2D, 1000);
+  --color-accent-rgb: getColorPaletteRgb(#B38F2D, DEFAULT);
+  --color-accent-hover-rgb: getColorPaletteRgb(#B38F2D, hover);
+  --color-accent-100-rgb: getColorPaletteRgb(#B38F2D, 100);
+  --color-accent-200-rgb: getColorPaletteRgb(#B38F2D, 200);
+  --color-accent-300-rgb: getColorPaletteRgb(#B38F2D, 300);
+  --color-accent-400-rgb: getColorPaletteRgb(#B38F2D, 400);
+  --color-accent-500-rgb: getColorPaletteRgb(#B38F2D, 500);
+  --color-accent-600-rgb: getColorPaletteRgb(#B38F2D, 600);
+  --color-accent-700-rgb: getColorPaletteRgb(#B38F2D, 700);
+  --color-accent-800-rgb: getColorPaletteRgb(#B38F2D, 800);
+  --color-accent-900-rgb: getColorPaletteRgb(#B38F2D, 900);
+  --color-accent-1000-rgb: getColorPaletteRgb(#B38F2D, 1000);
 
   /* Colors - Text
    * High contrast text colors for readability

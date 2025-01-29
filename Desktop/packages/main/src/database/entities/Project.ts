@@ -1,30 +1,36 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Route } from "./Route.js";
-import type { IProject } from '@shared/database/entities/IProject.js';
+import type { Zone } from "./Zone.js";
+import type { IProject } from '@dhlib/models/core/interfaces/IProject.js';
 
 @Entity("Projects")
 export class Project implements IProject {
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
     @Column()
-    name: string;
+    name!: string;
+    
+    @Column()
+    poi_lat!: number;
+    
+    @Column()
+    poi_lng!: number;
 
     @Column()
-    version: string;
+    version!: string;
 
     @Column({ nullable: true })
-    description: string;
+    description?: string;
 
     @Column({ type: 'simple-json', nullable: true })
-    settings: Record<string, any>;
+    settings?: Record<string, any>;
 
-    @OneToMany(() => Route, route => route.project)
-    routes: Route[];
+    @OneToMany('Zone', (zone: Zone) => zone.project)
+    zones: Zone[];
 
     @CreateDateColumn()
-    createdAt: Date;
+    createdAt!: Date;
 
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt!: Date;
 } 

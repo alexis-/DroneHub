@@ -1,4 +1,5 @@
 import { Map as OlMap, View } from 'ol'
+import { fromLonLat } from 'ol/proj';
 import type { Coordinate } from 'ol/coordinate';
 import type LayerGroup from 'ol/layer/Group';
 
@@ -39,7 +40,7 @@ export class OpenLayersViewModel implements IMapControls {
       target: mapElement,
       layers: layers,
       view: new View({
-        center: defaultCenter,
+        center: fromLonLat(defaultCenter),
         zoom: defaultZoom,
       }),
       controls: [],

@@ -20,7 +20,7 @@ import MapControls from '#components/map/MapControls.vue';
 import { useViewModel } from '#composables/useViewModel.ts';
 import type { ILoggerService } from '#models/interfaces/ILoggerService.js';
 import { CesiumViewModel } from '#models/viewmodels/cesium/CesiumVM.ts';
-import { mapCoordinatesCesium } from '#data/map-coordinates.ts';
+import { mapCoordinates } from '#data/map-coordinates.ts';
 import { FilePickerServiceKey, LoggerServiceKey } from '#models/injection-keys.ts';
 import type { IFilesystemService } from '#models/interfaces/IFilesystemService.ts';
 import { Cartesian2, Cartesian3, Color, HeightReference, HorizontalOrigin, VerticalOrigin } from 'cesium';
@@ -40,7 +40,7 @@ const _vm = useViewModel<CesiumViewModel>(
 
 import { parseWpml, serializeWpml, WpmlRoot } from '#models/wpml/index.ts';
 // TODO: Load from config - Convert Oslo coordinates to Cartesian3
-const defaultPosition = mapCoordinatesCesium.Oslo;
+const defaultPosition = mapCoordinates.Oslo;
 const defaultZoom = 10000; // meters
 
 const openAndDisplayWpmlFile = async () => {

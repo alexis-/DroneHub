@@ -1,7 +1,10 @@
 import {getNodeMajorVersion} from '@vite-electron-builder/electron-versions';
 import {spawn} from 'child_process';
+import {join} from 'node:path';
 import electronPath from 'electron';
 import swc from 'unplugin-swc';
+
+const PACKAGE_ROOT = __dirname;
 
 export default /**
  * @type {import('vite').UserConfig}
@@ -25,6 +28,12 @@ export default /**
     },
     emptyOutDir: true,
     reportCompressedSize: false,
+  },
+  resolve: {
+    alias: {
+      '@mjosdrone/dhlib': join(PACKAGE_ROOT, '../drone-hub-lib/src'),
+      '@dhlib': join(PACKAGE_ROOT, '../drone-hub-lib/src'),
+    }
   },
   plugins: [
     swc.vite(),

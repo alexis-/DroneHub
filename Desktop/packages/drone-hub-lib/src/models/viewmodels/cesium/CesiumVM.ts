@@ -1,9 +1,10 @@
-import { Viewer, Scene, Camera, ImageryLayer, TextureMagnificationFilter, TextureMinificationFilter, JulianDate, Cartesian2, Cartesian3 } from 'cesium';
+import { Viewer, Scene, Camera, ImageryLayer, TextureMagnificationFilter, TextureMinificationFilter, JulianDate, Cartesian2, Cartesian3, Tonemapper } from 'cesium';
 import { AppError } from '#models/app-errors.ts';
 import type { ILoggerService } from '#models/interfaces/ILoggerService.js';
 import type { IMapControls } from '#models/interfaces/IMapControls.ts';
 import { CesiumMapLayers } from '#data/map-layers.ts';
-import { mapCoordinatesCesium } from '#data/map-coordinates.ts';
+import { mapCoordinates } from '#data/map-coordinates.ts';
+import type { Coordinate } from 'ol/coordinate';
 
 const CONTEXT = "CesiumViewModel";
 
@@ -32,23 +33,26 @@ export class CesiumViewModel implements IMapControls {
   async initMap(
     logger: ILoggerService,
     mapElement: HTMLElement,
-    defaultPosition: Cartesian3,
+    defaultCoordinates: Coordinate,
     defaultZoom: number = 1000000
   ) {
     this._logger = logger;
-    console.log(defaultPosition, defaultZoom)
     
     const norge = CesiumMapLayers.Norge();
     const terrainProvider = await CesiumMapLayers.TerrainProvider();
     
-    
-    norge.minificationFilter = TextureMinificationFilter.NEAREST;
-    norge.magnificationFilter = TextureMagnificationFilter.NEAREST;
+    const defaultPosition = Cartesian3.fromDegrees(
+      defaultCoordinates[0], 
+      defaultCoordinates[1], 
+      defaultZoom
+    );
 
     this._viewer = new Viewer(mapElement, {
+      // Layers
       baseLayer: ImageryLayer.fromProviderAsync(new Promise(res => res(norge)), {}),
       terrainProvider: terrainProvider,
 
+      // Rendering
       useBrowserRecommendedResolution: false,
 
       // Disable Cesium Ion
@@ -66,11 +70,7 @@ export class CesiumViewModel implements IMapControls {
       navigationHelpButton: false
     });
 
-    this._viewer.scene.globe.depthTestAgainstTerrain  = true;
-    this._viewer.scene.verticalExaggeration = 1;
-
-    this._viewer.scene.globe.maximumScreenSpaceError = 1;
-
+    // Lighting
     this._viewer.scene.globe.enableLighting = true;
     this._viewer.scene.globe.atmosphereLightIntensity = 15;
     this._viewer.scene.highDynamicRange = true;
@@ -78,6 +78,20 @@ export class CesiumViewModel implements IMapControls {
     this._viewer.clock.currentTime = JulianDate.fromIso8601(
       "2024-08-01T12:30:00.000Z",
     );
+
+    // Texture rendering
+    this._viewer.scene.globe.maximumScreenSpaceError = 1;
+    this._viewer.scene.postProcessStages.fxaa.enabled = false;
+    this._viewer.scene.postProcessStages.tonemapper = Tonemapper.PBR_NEUTRAL;
+
+    for (let i = 0; i < this._viewer.imageryLayers.length; i++){
+      this._viewer.imageryLayers.get(i).magnificationFilter = TextureMagnificationFilter.NEAREST;
+      this._viewer.imageryLayers.get(i).minificationFilter = TextureMinificationFilter.NEAREST;
+    }
+
+    // Elevation
+    this._viewer.scene.globe.depthTestAgainstTerrain  = true;
+    this._viewer.scene.verticalExaggeration = 1;
 
     this.camera.flyTo({
       destination: defaultPosition,
@@ -89,8 +103,14 @@ export class CesiumViewModel implements IMapControls {
 
   centerOnGPS(): void {
     // TODO: Implement geolocation centering
+    const defaultPosition = Cartesian3.fromDegrees(
+      mapCoordinates.Oslo[0], 
+      mapCoordinates.Oslo[1], 
+      10000
+    );
+
     this.camera.flyTo({
-      destination: mapCoordinatesCesium.Oslo,
+      destination: defaultPosition,
       duration: 5
     })
   }

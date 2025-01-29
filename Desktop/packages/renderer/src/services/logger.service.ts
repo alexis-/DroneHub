@@ -45,7 +45,7 @@ class LoggerService implements ILoggerService {
     level: LogLevel,
     context: string,
     message: string,
-    data?: any
+    data?: any[]
   ): LogEntry {
     // Format timestamp as yyyy-MM-dd hh:mm:ss
     const now = new Date();
@@ -78,34 +78,34 @@ class LoggerService implements ILoggerService {
     
     switch (entry.level) {
       case 'debug':
-        console.debug(prefix, entry.message, entry.data || '');
+        console.debug(prefix, entry.message, ...entry.data);
         break;
       case 'info':
-        console.info(prefix, entry.message, entry.data || '');
+        console.info(prefix, entry.message, ...entry.data);
         break;
       case 'warn':
-        console.warn(prefix, entry.message, entry.data || '');
+        console.warn(prefix, entry.message, ...entry.data);
         break;
       case 'error':
-        console.error(prefix, entry.message, entry.data || '');
+        console.error(prefix, entry.message, ...entry.data);
         break;
     }
   }
 
-  debug(context: string, message: string, data?: any) {
+  debug(context: string, message: string, ...data: any[]) {
     this.log(this.createLogEntry('debug', context, message, data));
   }
 
-  info(context: string, message: string, data?: any) {
+  info(context: string, message: string, ...data: any[]) {
     this.log(this.createLogEntry('info', context, message, data));
   }
 
-  warn(context: string, message: string, data?: any) {
+  warn(context: string, message: string, ...data: any[]) {
     this.log(this.createLogEntry('warn', context, message, data));
   }
 
-  error(context: string, message: string, error?: Error | any) {
-    this.log(this.createLogEntry('error', context, message, error));
+  error(context: string, message: string, error?: Error | any, ...data: any[]) {
+    this.log(this.createLogEntry('error', context, message, [error, ...data]));
   }
 
   /**

@@ -7,7 +7,10 @@ import cesium from 'vite-plugin-cesium';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 import postcssFunctions from 'postcss-functions';
-import {hexToRgb, rgbToHex, shiftHex, shiftRgb} from '../drone-hub-lib/src/styles/functions/color-transform.js';
+import {
+  hexToRgb, rgbToHex, shiftHex, shiftRgb,
+  getColorPalette, getColorPaletteRgb,
+} from '../drone-hub-lib/src/styles/functions/color-transform.js';
 
 const PACKAGE_ROOT = __dirname;
 
@@ -38,7 +41,9 @@ export default defineConfig({
             hexToRgb: hexToRgb,
             rgbToHex: rgbToHex,
             shiftHex: shiftHex,
-            shiftRgb: shiftRgb
+            shiftRgb: shiftRgb,
+            getColorPalette: getColorPalette,
+            getColorPaletteRgb: getColorPaletteRgb
           }
         }),
       ],

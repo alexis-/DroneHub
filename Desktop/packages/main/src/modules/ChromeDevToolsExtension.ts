@@ -33,14 +33,18 @@ const extensionsDictionary = {
 
 export class ChromeDevToolsExtension implements AppModule {
   readonly #extension: keyof typeof extensionsDictionary;
+  readonly #openDevTools: boolean;
 
-  constructor({extension}: {readonly extension: keyof typeof extensionsDictionary}) {
+  constructor({extension}: {readonly extension: keyof typeof extensionsDictionary}, {openDevTools}: {readonly openDevTools: boolean} = {openDevTools: import.meta.env.DEV}) {
     this.#extension = extension;
+    this.#openDevTools = openDevTools;
   }
 
   async enable({app}: ModuleContext): Promise<void> {
     await app.whenReady();
-    await installExtension(extensionsDictionary[this.#extension]);
+    if (this.#openDevTools) {
+      await installExtension(extensionsDictionary[this.#extension]);
+    }
   }
 }
 

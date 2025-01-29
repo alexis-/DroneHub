@@ -1,5 +1,8 @@
+import {join} from 'node:path';
 import {resolveModuleExportNames} from 'mlly';
 import {getChromeMajorVersion} from '@vite-electron-builder/electron-versions';
+
+const PACKAGE_ROOT = __dirname;
 
 export default /**
  * @type {import('vite').UserConfig}
@@ -26,6 +29,12 @@ export default /**
     },
     emptyOutDir: true,
     reportCompressedSize: false,
+  },
+  resolve: {
+    alias: {
+      '@mjosdrone/dhlib': join(PACKAGE_ROOT, '../drone-hub-lib/src'),
+      '@dhlib': join(PACKAGE_ROOT, '../drone-hub-lib/src'),
+    }
   },
   plugins: [mockExposed(), handleHotReload()],
 });

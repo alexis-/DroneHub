@@ -4,10 +4,11 @@
 export class AppError extends Error {
   constructor(
     message: string,
-    public context: string,
-    public originalError?: Error
+    context: string,
+    originalError?: Error,
+    ...data: any[]
   ) {
-    super(message + (originalError ? `: ${originalError.message}` : ''));
+    super(message + (originalError ? `: ${originalError.message}` : '') + (data.length ? `: ${JSON.stringify(data)}` : ''));
     this.name = this.constructor.name;
   }
 }

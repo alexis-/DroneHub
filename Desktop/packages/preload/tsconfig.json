@@ -13,6 +13,8 @@
     "outDir": "./dist",
     "paths": {
       "@vite-electron-builder/*": ["../*"],
+      "@mjosdrone/dhlib/*": ["../drone-hub-lib/src/*"],
+      "@dhlib/*": ["../drone-hub-lib/src/*"],
       "@shared/*": ["../shared/src/*"]
     }
   },

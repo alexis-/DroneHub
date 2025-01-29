@@ -11,6 +11,7 @@ import {allowExternalUrls} from './modules/ExternalUrls.js';
 // DroneHub Modules Imports
 import {initializeAppDatabase} from './modules/Database.js';
 import {initializeAppIpc} from './modules/Ipc.js';
+import { chromeDevToolsExtension } from './modules/ChromeDevToolsExtension.js';
 
 
 export async function initApp(initConfig: AppInitConfig) {
@@ -22,7 +23,7 @@ export async function initApp(initConfig: AppInitConfig) {
     .init(autoUpdater())
 
     // Install DevTools extension if needed
-    // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
+    .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}, {openDevTools: import.meta.env.DEV}))
 
     // Security
     .init(allowInternalOrigins(

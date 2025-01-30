@@ -1,135 +1,158 @@
 <template>
   <div class="h-screen w-screen flex flex-col">
+    <!-- Toolbar with available panels -->
     <div class="h-12 bg-surface-900 flex items-center px-4 gap-2">
       <button 
         v-for="panel in availablePanels" 
-        :key="panel.id"
+        :key="panel.title"
         class="px-3 py-1 bg-surface-700 hover:bg-surface-600 rounded flex items-center gap-1"
         draggable="true"
         @dragstart="handleDragStart($event, panel)"
-        @dragend="handleDragEnd"
       >
-      <!-- @drag="handleDrag($event, panel)" -->
+      <!-- @dragend="handleDragEnd" -->
         <span v-if="panel.icon" class="material-symbols-outlined text-sm">{{ panel.icon }}</span>
         {{ panel.title }}
       </button>
 
       <div class="flex-1"></div>
 
+      <!-- Layout management -->
       <div class="flex items-center gap-2">
-        <select 
-          v-if="layouts.length > 0"
-          v-model="selectedLayout"
-          class="px-2 py-1 bg-surface-700 rounded"
+        <input 
+          v-model="layoutName"
+          class="px-2 py-1 bg-surface-800 rounded"
+          placeholder="Layout name..."
         >
-          <option value="">Select Layout</option>
-          <option 
-            v-for="layout in layouts" 
-            :key="layout.id" 
-            :value="layout.id"
-          >
-            {{ layout.name }}
-          </option>
-        </select>
-
         <button 
-          v-if="selectedLayout"
-          class="px-3 py-1 bg-primary-700 hover:bg-primary-600 rounded"
-          @click="loadLayout"
-        >
-          Load
-        </button>
-
-        <button 
-          class="px-3 py-1 bg-primary-700 hover:bg-primary-600 rounded"
-          @click="saveCurrentLayout"
+          class="px-3 py-1 bg-surface-700 hover:bg-surface-600 rounded"
+          @click="saveLayout"
         >
           Save Layout
+        </button>
+        <button 
+          v-for="layout in layouts"
+          :key="layout.id"
+          class="px-3 py-1 bg-surface-700 hover:bg-surface-600 rounded"
+          @click="loadLayout(layout.id)"
+        >
+          {{ layout.name }}
         </button>
       </div>
     </div>
 
-    <DockContainer class="flex-1" />
+    <!-- Dock system -->
+    <div class="flex-1">
+      <DockRoot />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDockStore } from '#stores/dockStore'
-import DockContainer from '../DockRoot.vue'
-import FileExplorer from './panels/FileExplorer.vue'
-import Properties from './panels/Properties.vue'
-import Timeline from './panels/Timeline.vue'
-import Preview from './panels/Preview.vue'
-import type { Panel } from '../models/DockTypes'
+import { ContentPanel, Panel, SidePanel } from '../models/DockClasses'
+import DockRoot from '../DockRoot.vue'
+
+//#region Store Setup
 
 const store = useDockStore()
-const { layouts, dragState } = storeToRefs(store)
-const selectedLayout = ref<string>('')
+const { layouts } = storeToRefs(store)
 
-// Define available panels that can be dragged into the dock
-const availablePanels = ref<Panel[]>([
+//#endregion
+
+
+//#region Layout Management
+
+const layoutName = ref('')
+
+function saveLayout() {
+  if (layoutName.value) {
+    store.saveLayout(layoutName.value)
+    layoutName.value = ''
+  }
+}
+
+function loadLayout(layoutId: string) {
+  store.loadLayout(layoutId)
+}
+
+//#endregion
+
+
+//#region Panel Definitions
+
+// Panel templates that will be used to create new instances
+const panelTemplates = [
+  // Content panels
   {
-    id: 'file-explorer',
-    type: 'toolbar',
-    title: 'File Explorer',
-    icon: 'folder',
-    component: FileExplorer,
-    closeable: true
-  },
-  {
-    id: 'properties',
-    type: 'toolbar',
-    title: 'Properties',
-    icon: 'tune',
-    component: Properties,
-    closeable: true
-  },
-  {
-    id: 'timeline',
-    type: 'toolbar',
-    title: 'Timeline',
-    icon: 'timeline',
-    component: Timeline,
-    closeable: true
-  },
-  {
-    id: 'preview',
     type: 'content',
     title: 'Preview',
-    icon: 'visibility',
-    component: Preview,
-    closeable: true
-  }
-])
+    icon: 'view_in_ar',
+    component: () => import('./panels/Preview.vue'),
+    closeable: true,
+    props: {}
+  },
+  {
+    type: 'content',
+    title: 'Timeline',
+    icon: 'timeline',
+    component: () => import('./panels/Timeline.vue'),
+    closeable: true,
+    props: {}
+  },
 
-function handleDragStart(event: DragEvent, panel: Panel) {
-  // Update store state with a fresh panel object
-  store.startDragging(event, panel);
+  // Toolbar panels
+  {
+    type: 'side',
+    title: 'File Explorer',
+    icon: 'folder',
+    component: () => import('./panels/FileExplorer.vue'),
+    closeable: true,
+    props: {}
+  },
+  {
+    type: 'side',
+    title: 'Properties',
+    icon: 'tune',
+    component: () => import('./panels/Properties.vue'),
+    closeable: true,
+    props: {}
+  }
+]
+
+// Create a computed property for the available panels to be displayed
+const availablePanels = computed(() => panelTemplates)
+
+//#endregion
+
+
+//#region Drag & Drop
+
+function handleDragStart(event: DragEvent, template: typeof panelTemplates[0]) {
+  // Create a new panel instance based on the template
+  const panel = Object.assign(
+    template.type === 'content' ? new ContentPanel() : new SidePanel(),
+    {
+      title: template.title,
+      icon: template.icon,
+      component: template.component,
+      closeable: template.closeable,
+      props: template.props
+    }
+  )
+  
+  store.startDragging(event, panel)
 }
 
 function handleDragEnd() {
   store.stopDragging()
 }
 
-function saveCurrentLayout() {
-  const name = prompt('Enter layout name:')
-  if (name) {
-    store.saveLayout(name)
-  }
-}
+//#endregion
 
-function loadLayout() {
-  if (selectedLayout.value) {
-    store.loadLayout(selectedLayout.value)
-    selectedLayout.value = ''
-  }
-}
 </script>
 
 <style scoped>
-.material-symbols-outlined {
-  font-size: 1.2em;
-}
+/* No additional styles needed - using Tailwind classes */
 </style>

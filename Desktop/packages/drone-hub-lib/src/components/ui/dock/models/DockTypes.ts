@@ -31,8 +31,7 @@ export interface IDragState {
 }
 
 export interface IDropTarget {
+  areaId: string | null;
   absolutePosition: DockPosition;
   relativePosition: DockPosition;
-  areaId: string;
-  splitDirection?: SplitDirection;
 }

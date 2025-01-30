@@ -1,30 +1,31 @@
 <template>
+  <!-- This overlay is shown if a panel is being dragged -->
   <div 
     v-if="store.dragState.isDragging"
-    class="dock-drop-overlay"
+    class="dock-drop-overlay absolute inset-0 pointer-events-none z-50 bg-black/20"
     @dragover.prevent
     @drop.prevent="handleDrop"
   >
-    <!-- Container-level drop zones (only for empty areas) -->
+    <!-- Container-level drop zones (only for empty areas, if root) -->
     <template v-if="props.root && shouldShowRootDropZones">
       <div 
-        v-for="relativePosition in availableRootPositions"
-        :key="relativePosition"
+        v-for="absolutePosition in availableRootPositions"
+        :key="absolutePosition"
         class="drop-zone"
         :class="[
-          `drop-zone-${relativePosition}`,
-          { 'active': isActiveTarget(relativePosition) }
+          `drop-zone-${absolutePosition}`,
+          { 'active': isActiveTarget(null, absolutePosition, DockPosition.Center) }
         ]"
-        @dragenter.prevent="handleDragEnter(relativePosition)"
+        @dragenter.prevent="handleDragEnter(null, absolutePosition, DockPosition.Center)"
         @dragleave.prevent="handleDragLeave"
       >
         <div class="drop-indicator">
-          <span class="material-symbols-outlined">{{ getZoneIcon(relativePosition) }}</span>
+          <span class="material-symbols-outlined">{{ getZoneIcon(absolutePosition) }}</span>
         </div>
       </div>
     </template>
 
-    <!-- Area-level drop zones (for stacking and splitting) -->
+    <!-- Area-level drop zones (stack vs. split) -->
     <template v-if="!props.root">
       <!-- Split zones -->
       <div 
@@ -35,10 +36,10 @@
         :class="[
           `split-zone-${relativePosition}`,
           { 
-            'active': isActiveTarget(relativePosition)
+            'active': isActiveTarget(props.areaId, props.absolutePosition, relativePosition)
           }
         ]"
-        @dragenter.prevent="handleDragEnter(relativePosition, splitInfo.direction)"
+        @dragenter.prevent="handleDragEnter(props.areaId, props.absolutePosition, relativePosition)"
         @dragleave.prevent="handleDragLeave"
       >
         <div class="drop-indicator">
@@ -46,14 +47,14 @@
         </div>
       </div>
 
-      <!-- Stack zone (center of the area) -->
+      <!-- Stack zone (center) -->
       <div 
         v-if="shouldShowZoneForDraggedPanel"
         class="drop-zone stack-zone"
         :class="{ 
-          'active': isActiveTarget(DockPosition.Center)
+          'active': isActiveTarget(props.areaId, props.absolutePosition, DockPosition.Center)
         }"
-        @dragenter.prevent="handleDragEnter(DockPosition.Center)"
+        @dragenter.prevent="handleDragEnter(props.areaId, props.absolutePosition, DockPosition.Center)"
         @dragleave.prevent="handleDragLeave"
       >
         <div class="drop-indicator">
@@ -65,39 +66,43 @@
 </template>
 
 <script setup lang="ts">
-
-//#region Setup
+/**
+ * DockDropOverlay
+ * ------------------------------------
+ * Changed from "fixed inset-0" to "absolute inset-0",
+ * letting its parent container control its dimensions.
+ * Removed the old `margins` prop completely.
+ */
 
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { DockPosition, PanelType, SplitDirection, type IDropTarget } from './models/DockTypes'
+import { DockPosition, PanelType, SplitDirection } from './models/DockTypes'
 import { useDockStore } from '#stores/dockStore'
 
 const store = useDockStore()
-const { dragState } = storeToRefs(store)
+const { currentLayout, dragState } = storeToRefs(store)
 
 const props = defineProps<{
-  absolutePosition: DockPosition
-  areaId: string
+  absolutePosition?: DockPosition  // undefined when root === true
+  areaId?: string                  // undefined when root === true
   root: boolean
 }>()
-
-//#endregion
 
 
 //#region Root-level
 
-// Only show container drop zones if the dragged panel is of type 'toolbar'
+/**
+ * We only allow root drop zones for 'toolbar' type panels,
+ * and only on empty root positions (i.e. no existing area).
+ */
 const shouldShowRootDropZones = computed(() => 
   dragState.value.panel?.type === PanelType.Toolbar
 )
 
-// Only show root drop zones for positions that don't have panels
 const availableRootPositions = computed(() => {
-  const layout = store.currentLayout
-  
-  return [DockPosition.Left, DockPosition.Right, DockPosition.Top, DockPosition.Bottom].filter(position => {
-    return !layout.areas[position]
+  const allRootPositions = [DockPosition.Left, DockPosition.Right, DockPosition.Top, DockPosition.Bottom];
+  return allRootPositions.filter(position => {
+    return !currentLayout.value.areas[position];
   })
 })
 
@@ -106,38 +111,49 @@ const availableRootPositions = computed(() => {
 
 //#region Area-level
 
-// Only show zone if:
-// - Panel is dragged over the current area
-// - Dragged panel type matches the area type
+/**
+ * Only show the area-level overlay if:
+ * 1) The dragged panel is over this area, and
+ * 2) The dragged panel's type matches the area type (content vs. toolbar).
+ */
 const shouldShowZoneForDraggedPanel = computed(() => {
   const draggedPanelType = dragState.value.panel?.type;
   const dragAreaId = dragState.value.dropTarget?.areaId;
-
   const isSameArea = props.areaId === dragAreaId;
-  const isSamePanelType = (props.absolutePosition === DockPosition.Center && draggedPanelType === PanelType.Content)
-  || (props.absolutePosition !== DockPosition.Center && draggedPanelType === PanelType.Toolbar);
 
-  return isSameArea && isSamePanelType;
+  const isCenterArea   = (props.absolutePosition === DockPosition.Center);
+  const isToolbarArea  = !isCenterArea;  // left, right, top, bottom
+  const isDraggingContent = (draggedPanelType === PanelType.Content);
+  const isDraggingToolbar = (draggedPanelType === PanelType.Toolbar);
+
+  // Content panels only drop in center, toolbars only in side areas:
+  const areaMatchesType = (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
+
+  return isSameArea && areaMatchesType;
 });
 
+/**
+ * Provide a simple structure for possible split zones (left, right, top, bottom)
+ * but only mark them "allowed" if it’s a valid combination.
+ */
 const areaSplitPositions = computed(() => ({
   [DockPosition.Left]: {
-    allowed: [DockPosition.Left, DockPosition.Right].includes(props.absolutePosition) == false,
+    allowed: ![DockPosition.Left, DockPosition.Right].includes(props.absolutePosition!),
     direction: SplitDirection.Horizontal
   },
   [DockPosition.Right]: {
-    allowed: [DockPosition.Left, DockPosition.Right].includes(props.absolutePosition) == false,
+    allowed: ![DockPosition.Left, DockPosition.Right].includes(props.absolutePosition!),
     direction: SplitDirection.Horizontal
   },
   [DockPosition.Top]: {
-    allowed: [DockPosition.Bottom, DockPosition.Top].includes(props.absolutePosition) == false,
+    allowed: ![DockPosition.Top, DockPosition.Bottom].includes(props.absolutePosition!),
     direction: SplitDirection.Vertical
   },
   [DockPosition.Bottom]: {
-    allowed: [DockPosition.Bottom, DockPosition.Top].includes(props.absolutePosition) == false,
+    allowed: ![DockPosition.Top, DockPosition.Bottom].includes(props.absolutePosition!),
     direction: SplitDirection.Vertical
   }
-}))
+}));
 
 //#endregion
 
@@ -145,30 +161,26 @@ const areaSplitPositions = computed(() => ({
 //#region Visual Helpers
 
 function getSplitIcon(direction: SplitDirection): string {
-  return direction === SplitDirection.Horizontal ? 'swap_horiz' : 'swap_vert'
+  return direction === SplitDirection.Horizontal ? 'swap_horiz' : 'swap_vert';
 }
 
 function getZoneIcon(position: DockPosition): string {
   switch (position) {
-    case DockPosition.Left: return 'chevron_left'
-    case DockPosition.Right: return 'chevron_right'
-    case DockPosition.Top: return 'expand_less'
-    case DockPosition.Bottom: return 'expand_more'
-    default:
-      throw new Error(`Invalid position: ${position}`)
+    case DockPosition.Left:   return 'chevron_left';
+    case DockPosition.Right:  return 'chevron_right';
+    case DockPosition.Top:    return 'expand_less';
+    case DockPosition.Bottom: return 'expand_more';
+    default: throw new Error(`Invalid position: ${position}`);
   }
 }
 
-function isActiveTarget(
-  relativePosition: DockPosition
-): boolean {
-  const target = store.dragState.dropTarget
-
-  const isSameAbsolutePosition = target?.absolutePosition === props.absolutePosition
-  const isSameRelativePosition = target?.relativePosition === relativePosition
-  const isSameArea = target?.areaId === props.areaId
-
-  return isSameAbsolutePosition && isSameRelativePosition && isSameArea
+function isActiveTarget(areaId: string | null, absPos: DockPosition, relPos: DockPosition): boolean {
+  const target = store.dragState.dropTarget;
+  if (!target) return false;
+  const sameArea   = (areaId === null) || (target.areaId === areaId);
+  const sameAbsPos = (target.absolutePosition === absPos);
+  const sameRelPos = (target.relativePosition === relPos);
+  return (sameArea && sameAbsPos && sameRelPos);
 }
 
 //#endregion
@@ -176,45 +188,36 @@ function isActiveTarget(
 
 //#region Drag & Drop
 
-function handleDragEnter(
-  relativePosition: DockPosition,
-  splitDirection?: SplitDirection
-) {
-  const target = {
-    absolutePosition: props.absolutePosition,
-    relativePosition: relativePosition,
-    areaId: props.areaId,
-    splitDirection: splitDirection
-  };
-
-  store.updateDropTarget(target);
+function handleDragEnter(areaId: string | null, absPos: DockPosition, relPos: DockPosition) {
+  store.updateDropTarget({ areaId, absolutePosition: absPos, relativePosition: relPos });
 }
 
 function handleDragLeave(event: DragEvent) {
-  const currentTarget = event.currentTarget as HTMLElement
-  const relatedTarget = event.relatedTarget as Node | null
-  
+  const currentTarget = event.currentTarget as HTMLElement;
+  const relatedTarget = event.relatedTarget as Node | null;
+
+  // If the mouse leaves the overlay or a drop-zone, and there's no related target inside it,
+  // clear the drop target:
   if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
-    store.updateDropTarget(null)
+    store.updateDropTarget(null);
   }
 }
 
 function handleDrop() {
-  const target = store.dragState.dropTarget
-
-  if (target)
-    store.handleDrop(target)
-
-  store.stopDragging()
+  const target = store.dragState.dropTarget;
+  if (target) {
+    store.handleDrop(target);
+  }
+  store.stopDragging();
 }
 
 //#endregion
-
 </script>
 
 <style scoped>
 .dock-drop-overlay {
-  @apply fixed inset-0 bg-black/20 pointer-events-none z-50;
+  /* Changed from `fixed inset-0` to `absolute inset-0` */
+  /* background & pointer-events set here for convenience */
 }
 
 .drop-zone {

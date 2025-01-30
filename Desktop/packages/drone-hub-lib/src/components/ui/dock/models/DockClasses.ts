@@ -1,4 +1,4 @@
-import { type Component } from 'vue'
+import { type Component, defineAsyncComponent } from 'vue'
 import { v4 as uuidv4 } from 'uuid';
 import { DockPosition, PanelType, SplitDirection } from './DockTypes';
 import { validateSplitDirection } from '../DockUtils';
@@ -13,9 +13,9 @@ export abstract class Panel {
   title: string;
   icon: string;
   parent: DockAreaPanelStackDef | null;
-  component: Component;
+  abstract component(): Promise<Component>;
   closeable: boolean;
-  props: Record<string, any>;
+  props: any;
 }
 
 export class ContentPanel extends Panel {
@@ -37,8 +37,7 @@ export interface IDockAreaDef {
   absolutePosition: DockPosition;
   relativePosition: DockPosition | null;
   parent: IDockAreaDef | null;
-  type: 'panel' | 'container';
-  dockComponent: () => Promise<Component>;
+  dockComponent(): Promise<Component>;
 }
 
 export class DockAreaPanelStackDef implements IDockAreaDef {
@@ -46,7 +45,6 @@ export class DockAreaPanelStackDef implements IDockAreaDef {
   absolutePosition: DockPosition
   relativePosition: DockPosition | null;
   parent: IDockAreaDef | null;
-  type: 'panel';
   panelStack: Panel[];
   activePanel: Panel | null;
 
@@ -99,9 +97,9 @@ export class DockAreaPanelStackDef implements IDockAreaDef {
   }
   
   dockComponent() {
-    return import('#components/ui/dock/DockAreaPanel.vue');
+    return import('#components/ui/dock/DockAreaPanelStack.vue');
   }
-}
+} 
 
 export class DockAreaContainerSplitDef implements IDockAreaDef {
   id: string;
@@ -109,7 +107,6 @@ export class DockAreaContainerSplitDef implements IDockAreaDef {
   relativePosition: DockPosition | null;
   // areaSize: number;
   parent: IDockAreaDef;
-  type: 'container';
   splitDirection: SplitDirection;
   leftOrTop?: IDockAreaDef;
   rightOrBottom?: IDockAreaDef;
@@ -127,7 +124,7 @@ export class DockAreaContainerSplitDef implements IDockAreaDef {
   }
 
   validate(): boolean {
-    return validateSplitDirection(this.absolutePosition, this.splitDirection);
+    return validateSplitDirection(this.absolutePosition, this.relativePosition);
   }
 }
 

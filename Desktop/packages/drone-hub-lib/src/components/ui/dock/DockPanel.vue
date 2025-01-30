@@ -1,78 +1,83 @@
 <template>
-  <div 
-    v-show="isActive"
-    class="dock-panel"
-    draggable="true"
-    @dragstart="handleDragStart"
-    @dragend="handleDragEnd"
-  >
+  <div class="dock-panel">
+    <!-- Panel header -->
     <div class="panel-header">
-      <div class="panel-title">
-        <span v-if="panel.icon" class="material-symbols-outlined">{{ panel.icon }}</span>
-        {{ panel.title }}
+      <div class="header-content">
+        <span 
+          v-if="panel.icon"
+          class="material-symbols-outlined"
+        >{{ panel.icon }}</span>
+        <span class="panel-title">{{ panel.title }}</span>
       </div>
-      <button 
-        v-if="panel.closeable"
-        class="close-button"
-        @click="$emit('close', panel.id)"
-      >
-        <span class="material-symbols-outlined">close</span>
-      </button>
+      <div class="header-actions">
+        <button 
+          v-if="panel.closeable"
+          class="close-button"
+          @click="closePanel"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
     </div>
-    
+
+    <!-- Panel content -->
     <div class="panel-content">
-      <component 
-        :is="panel.component"
-        v-bind="panel.props || {}"
+      <component
+        :is="panelComponent"
+        v-bind="panel.props"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Panel } from './models/DockTypes'
+import { type Panel } from './models/DockClasses'
 import { useDockStore } from '#stores/dockStore'
+import { computed, defineAsyncComponent } from 'vue';
 
 const props = defineProps<{
   panel: Panel
-  isActive: boolean
 }>()
 
 const store = useDockStore()
 
-defineEmits<{
-  (e: 'close', id: string): void
-}>()
+const panelComponent = computed(() => defineAsyncComponent(props.panel.component))
 
-function handleDragStart(event: DragEvent) {
-  // Update store drag state
-  store.startDragging(event, props.panel)
-}
-
-function handleDragEnd() {
-  store.stopDragging()
+function closePanel() {
+  store.removePanel(props.panel)
 }
 </script>
 
 <style scoped>
 .dock-panel {
-  @apply h-full flex flex-col bg-surface-800;
+  @apply flex flex-col h-full w-full overflow-hidden;
 }
 
 .panel-header {
-  @apply flex items-center justify-between px-3 py-1 bg-surface-700 border-b border-surface-600;
+  @apply flex items-center justify-between h-9 px-3
+         bg-surface-800 border-b border-surface-700;
+}
+
+.header-content {
+  @apply flex items-center gap-2;
 }
 
 .panel-title {
-  @apply flex items-center gap-1 text-sm font-medium;
+  @apply text-sm text-surface-100 truncate;
+}
+
+.header-actions {
+  @apply flex items-center;
 }
 
 .close-button {
-  @apply p-0.5 hover:bg-surface-600 rounded;
+  @apply p-0.5 rounded-sm
+         hover:bg-surface-700
+         transition-colors duration-150;
 }
 
-.close-button span {
-  @apply text-base;
+.close-button .material-symbols-outlined {
+  @apply text-base text-surface-100;
 }
 
 .panel-content {

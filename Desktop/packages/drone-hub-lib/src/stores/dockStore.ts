@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, inject } from 'vue';
-import { getOppositePosition, getPanelType, validateSplitDirection } from '#components/ui/dock/DockUtils.ts';
+import { getOppositePosition, getPanelType, getSplitDirection, validatePosition, validateSplitDirection } from '#components/ui/dock/DockUtils.ts';
 import {
   type IDockAreaDef, 
   type Panel, 
@@ -13,7 +13,6 @@ import {
   type IDropValidation,
   type IDragState,
   DockPosition,
-  SplitDirection,
   PanelType
 } from '#components/ui/dock/models/DockTypes.ts';
 import { LoggerServiceKey } from '#models/injection-keys.ts';
@@ -49,7 +48,7 @@ export const useDockStore = defineStore('dock', () => {
     
     for (const area of areaIterator) {
       if (area instanceof DockAreaPanelStackDef == false)
-        return;
+        continue;
 
       const panelIdx = area.panelStack.findIndex(p => p.id === panelId);
 
@@ -58,15 +57,6 @@ export const useDockStore = defineStore('dock', () => {
     }
 
     return null;
-  }
-
-  /**
-   * Finds the area with the specified ID.
-   * @param areaId 
-   * @returns 
-   */
-  function findAreaById(areaId: string): IDockAreaDef | undefined {
-    return areaMap.value.get(areaId);
   }
 
   /**
@@ -151,34 +141,34 @@ export const useDockStore = defineStore('dock', () => {
   function movePanel(
     panel: Panel,
     relativePosition: DockPosition = DockPosition.Center,
-    newArea?: DockAreaPanelStackDef,
+    area?: DockAreaPanelStackDef | DockPosition,
     makeActive: boolean = true): DockAreaPanelStackDef {
     // Sanity checks
     if (!panel.parent) {
-      console.warn(CONTEXT, 'Panel is orphaned, use addPanel instead', newArea, panel);
-      return addPanel(panel, relativePosition, newArea, makeActive);
+      console.warn(CONTEXT, 'Panel is orphaned, use addPanel instead', area, panel);
+      return addPanel(panel, relativePosition, area, makeActive);
     }
 
-    if (newArea && getPanelType(newArea.absolutePosition) !== panel.type) {
-      logger.error(CONTEXT, 'Invalid panel type for area', newArea, panel);
-      throw new AppError(CONTEXT, 'Invalid panel type for area');
-    }
+    try {
+      area = _getSafeAreaInternal(area, panel);
+      
+      // Remove and re-add panel to new area
+      removePanel(panel);
+      _addPanelInternal(panel, relativePosition, area, makeActive);
 
-    if (newArea && newArea instanceof DockAreaContainerSplitDef == false) {
-      logger.error(CONTEXT, 'Invalid area type', newArea);
-      throw new AppError(CONTEXT, 'Invalid area type');
+      return area;
+    } catch (e) {
+      if (typeof area === 'string' && validatePosition(area)) {
+        currentLayout.value.areas[area] = undefined;
+      }
+      throw e;
     }
-    
-    removePanel(panel);
-    _addPanelInternal(panel, relativePosition, newArea, makeActive);
-
-    return newArea;
   }
 
   function addPanel(
     panel: Panel,
     relativePosition: DockPosition = DockPosition.Center,
-    area?: DockAreaPanelStackDef,
+    area?: DockAreaPanelStackDef | DockPosition,
     makeActive: boolean = true): DockAreaPanelStackDef {
     // Sanity checks
     if (panel.parent) {
@@ -186,17 +176,54 @@ export const useDockStore = defineStore('dock', () => {
       return movePanel(panel, relativePosition, area, makeActive);
     }
 
+    try {
+      area = _getSafeAreaInternal(area, panel);
+
+      return _addPanelInternal(panel, relativePosition, area, makeActive);
+    } catch (e) {
+      if (typeof area === 'string' && validatePosition(area)) {
+        currentLayout.value.areas[area] = undefined;
+      }
+      throw e;
+    }
+  }
+
+  function _getSafeAreaInternal(areaOrPosition: DockAreaPanelStackDef | DockPosition, panel: Panel): DockAreaPanelStackDef {
+    // If area is DockPosition, create new root area
+    if (typeof areaOrPosition === 'string') {
+      const absolutePosition = areaOrPosition;
+      
+      if (validatePosition(absolutePosition) === false) {
+        console.error(CONTEXT, 'Invalid area position', absolutePosition);
+        throw new AppError(CONTEXT, 'Invalid area position');
+      }
+
+      if (currentLayout.value.areas[absolutePosition]) {
+        console.error(CONTEXT, 'Root area already exists', absolutePosition);
+        throw new AppError(CONTEXT, 'Root area already exists');
+      }
+
+      const newArea = new DockAreaPanelStackDef({absolutePosition: absolutePosition});
+      currentLayout.value.areas[absolutePosition] = newArea;
+      areaMap.value.set(newArea.id, newArea);
+
+      return newArea;
+    }
+
+    // Area sanity check
+    const area = areaOrPosition;
+
     if (area && getPanelType(area.absolutePosition) !== panel.type) {
       logger.error(CONTEXT, 'Invalid panel type for area', area, panel);
       throw new AppError(CONTEXT, 'Invalid panel type for area');
     }
 
-    if (area && area instanceof DockAreaContainerSplitDef == false) {
+    if (area && area instanceof DockAreaPanelStackDef == false) {
       logger.error(CONTEXT, 'Invalid area type', area);
       throw new AppError(CONTEXT, 'Invalid area type');
     }
 
-    return _addPanelInternal(panel, relativePosition, area, makeActive);
+    return area;
   }
 
   function _addPanelInternal(
@@ -215,11 +242,9 @@ export const useDockStore = defineStore('dock', () => {
     // Handle split if relativePosition is not Center
     if (relativePosition !== DockPosition.Center) {
       // Determine split direction based on relative position
-      const splitDirection = (relativePosition === DockPosition.Left || relativePosition === DockPosition.Right)
-        ? SplitDirection.Vertical
-        : SplitDirection.Horizontal;
+      const splitDirection = getSplitDirection(relativePosition);
 
-      if (!validateSplitDirection(area.absolutePosition, splitDirection)) {
+      if (!validateSplitDirection(area.absolutePosition, relativePosition)) {
         logger.error(CONTEXT, 'Invalid split direction', area, splitDirection);
         throw new AppError(CONTEXT, 'Invalid split direction');
       }
@@ -231,12 +256,14 @@ export const useDockStore = defineStore('dock', () => {
         splitDirection: splitDirection,
         parent: area.parent
       });
+      areaMap.value.set(containerSplit.id, containerSplit);
       
       // Create new panel stack for the dropped panel
       const newPanelStack = new DockAreaPanelStackDef({
         absolutePosition: area.absolutePosition,
         relativePosition: relativePosition,
       });
+      areaMap.value.set(newPanelStack.id, newPanelStack);
 
       // Set container as new parent for both areas
       area.parent = containerSplit;
@@ -324,6 +351,7 @@ export const useDockStore = defineStore('dock', () => {
       // Don't collapse the center area - it should always exist
       if (area.absolutePosition !== DockPosition.Center) {
         currentLayout.value.areas[area.absolutePosition] = undefined;
+        areaMap.value.delete(area.id);
       }
       
       return;
@@ -334,6 +362,9 @@ export const useDockStore = defineStore('dock', () => {
       logger.error(CONTEXT, 'Invalid parent type', parent);
       throw new AppError(CONTEXT, 'Invalid parent type');
     }
+
+    // Remove the parent from the map
+    areaMap.value.delete(parent.id);
 
     // Get the sibling that will remain
     const remainingArea = parent.leftOrTop === area ? parent.rightOrBottom : parent.leftOrTop;
@@ -392,12 +423,9 @@ export const useDockStore = defineStore('dock', () => {
     // DOM manipulation within a dragstart event handler triggers a native/browser-issued automatic dragabort.
     // We get around this by using a setTimeout to ensure the DOM update occurs after the dragstart event.
     setTimeout(() => {
-      // Replace entire state object to ensure reactivity
-      dragState.value = {
-        isDragging: true,
-        panel: { ...panel }, // Create a new object reference
-        dropTarget: null
-      };
+      dragState.value.isDragging = true;
+      dragState.value.panel = panel;
+      dragState.value.dropTarget = null;
     }, 0)
   }
 
@@ -431,20 +459,25 @@ export const useDockStore = defineStore('dock', () => {
       return false;
     }
 
-    const area = findAreaById(target.areaId!);
+    const areaOrPosition = target.areaId
+      ? areaMap.value.get(target.areaId)
+      : target.absolutePosition;
     
-    if (!area || area instanceof DockAreaPanelStackDef == false) {
+    if (typeof areaOrPosition !== 'string' && areaOrPosition instanceof DockAreaPanelStackDef == false) {
       logger.error(CONTEXT, 'Invalid drop target ', null, target);
       throw new AppError(CONTEXT, 'Invalid drop target ', null, target);
     }
 
     const panel = dragState.value.panel;
 
-    if (target.splitDirection)
-      return splitArea(panel, area as DockAreaPanelStackDef, target);
-
+    if (panel.parent)
+      //@ts-ignore - Typescript fails to evaluate area's true type
+      movePanel(panel, target.relativePosition, areaOrPosition);
     else
-      return addPanelToStack(panel, area as DockAreaPanelStackDef);
+      //@ts-ignore
+      addPanel(panel, target.relativePosition, areaOrPosition);
+
+    return true;
   }
 
   function validateDrop(target: IDropTarget): IDropValidation {
@@ -456,7 +489,8 @@ export const useDockStore = defineStore('dock', () => {
       return { isValid: false, message: 'No panel being dragged' };
     }
 
-    if (!target.areaId) {
+    // Only allow empty areaId when the root area at the target position doesn't exist
+    if (!target.areaId && currentLayout.value.areas[target.absolutePosition]) {
       return { isValid: false, message: 'No target area' };
     }
 
@@ -464,18 +498,18 @@ export const useDockStore = defineStore('dock', () => {
     const isContentPanel = panel.type === PanelType.Content;
 
     // Content panels can only be dropped in center position
-    if (isContentPanel && target.type !== PanelType.Content) {
+    if (isContentPanel && getPanelType(target.absolutePosition) !== PanelType.Content) {
       return { isValid: false, message: 'Content panels can only be dropped in center' };
     }
 
     // Side panels can't be dropped in center
-    if (!isContentPanel && target.type === PanelType.Content) {
+    if (!isContentPanel && getPanelType(target.absolutePosition) === PanelType.Content) {
       return { isValid: false, message: 'Toolbars cannot be dropped in center' };
     }
 
     // Validate split directions based on position
-    if (target.splitDirection) {
-      const isValidSplit = validateSplitDirection(target.position, target.splitDirection);
+    if (target.relativePosition !== DockPosition.Center) {
+      const isValidSplit = validateSplitDirection(target.absolutePosition, target.relativePosition);
 
       if (!isValidSplit) {
         return { isValid: false, message: 'Invalid split direction for this position' };
@@ -496,14 +530,14 @@ export const useDockStore = defineStore('dock', () => {
       currentLayout.value = { id: uuidv4(), ...currentLayout.value, name }; // TODO: Check if deep clone needed
     }
     
-    savedLayouts.value[currentLayout.value.id] = currentLayout.value;
+    savedLayouts.value.set(currentLayout.value.id, currentLayout.value);
   }
 
   function loadLayout(layoutId: string) {
     if (!savedLayouts.value.has(layoutId))
       throw new Error(`Layout ${layoutId} not found`);
 
-    currentLayout.value = savedLayouts.value[layoutId];
+    currentLayout.value = savedLayouts.value.get(layoutId);
   }
 
   //#endregion

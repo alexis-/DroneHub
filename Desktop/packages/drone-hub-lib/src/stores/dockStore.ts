@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { ref, inject } from 'vue';
+import { ref, inject, isReactive, toValue, isProxy, toRaw } from 'vue';
+import { v4 as uuidv4 } from 'uuid';
 import { getOppositePosition, getPanelType, getSplitDirection, validatePosition, validateSplitDirection } from '#components/ui/dock/DockUtils.ts';
 import {
   type IDockAreaDef, 
@@ -16,7 +17,7 @@ import {
   PanelType
 } from '#components/ui/dock/models/DockTypes.ts';
 import { LoggerServiceKey } from '#models/injection-keys.ts';
-import { v4 as uuidv4 } from 'uuid';
+import { getCircularReplacer } from '#utils/json-utils.ts';
 import { AppError } from '#models/app-errors.ts';
 
 const CONTEXT = 'dockStore';
@@ -231,6 +232,9 @@ export const useDockStore = defineStore('dock', () => {
     relativePosition: DockPosition = DockPosition.Center,
     area?: DockAreaPanelStackDef,
     makeActive: boolean = true): DockAreaPanelStackDef {
+    // area = isProxy(area) ? toRaw(area) : area;
+    // panel = isProxy(panel) ? toRaw(panel) : panel;
+
     if (panel.type === PanelType.Content) {
       // TODO: Track and use currently focused content area if no area is provided
       area = getSafeCenterArea(area);
@@ -265,19 +269,23 @@ export const useDockStore = defineStore('dock', () => {
       });
       areaMap.value.set(newPanelStack.id, newPanelStack);
 
+      // Add panel to the new stack
+      newPanelStack.addPanel(panel, makeActive);
+
       // Set container as new parent for both areas
-      area.parent = containerSplit;
-      newPanelStack.parent = containerSplit;
+      Object.assign(area.parent, containerSplit);
+      Object.assign(newPanelStack.parent, containerSplit);
 
       // Organize areas based on relative position
       area.relativePosition = getOppositePosition(relativePosition);
 
+      debugger;
       if (relativePosition === DockPosition.Left || relativePosition === DockPosition.Top) {
-        containerSplit.leftOrTop = newPanelStack;
+        Object.assign(containerSplit.leftOrTop, newPanelStack);
         containerSplit.rightOrBottom = area;
       } else {
         containerSplit.leftOrTop = area;
-        containerSplit.rightOrBottom = newPanelStack;
+        Object.assign(containerSplit.rightOrBottom, newPanelStack);
       }
 
       // Update layout reference if area was a root area
@@ -296,9 +304,6 @@ export const useDockStore = defineStore('dock', () => {
         logger.error(CONTEXT, 'Invalid parent type', containerSplit.parent);
         throw new AppError(CONTEXT, 'Invalid parent type');
       }
-
-      // Add panel to the new stack
-      newPanelStack.addPanel(panel, makeActive);
 
       return newPanelStack;
     }
@@ -413,7 +418,7 @@ export const useDockStore = defineStore('dock', () => {
     }
     
     // Set drag data for browsers that need it
-    event.dataTransfer.setData('application/json', JSON.stringify(panel));
+    event.dataTransfer.setData('application/json', JSON.stringify(panel, getCircularReplacer()));
     event.dataTransfer.effectAllowed = 'move';
     
     // Create a drag image to improve the drag visual feedback

@@ -3,9 +3,11 @@
     class="dock-area-panel-stack"
     @dragover.prevent
   >
+  {{  JSON.stringify(panelStack, getCircularReplacer()) }}
+  {{  console.log(panelStack) }}
     <!-- Panel header with tabs -->
     <div 
-      v-if="panelStack.length > 0"
+      v-if="panelStack?.length > 0"
       class="panel-header"
     >
       <div class="tabs-container">
@@ -43,11 +45,12 @@
       />
     </div>
 
-    <!-- Drop overlay -->
+    <!-- Drop overlay for this stack area -->
     <DockDropOverlay
       :area-id="areaDef.id"
       :absolute-position="areaDef.absolutePosition"
       :root="false"
+      class="absolute inset-0"
     />
   </div>
 </template>
@@ -58,6 +61,8 @@ import { useDockStore } from '#stores/dockStore'
 import { DockAreaPanelStackDef, type Panel } from './models/DockClasses'
 import DockDropOverlay from './DockDropOverlay.vue'
 import DockPanel from './DockPanel.vue'
+
+import { getCircularReplacer } from '#utils/json-utils.ts';
 
 //#region Props & Store
 
@@ -80,20 +85,12 @@ const activePanel = computed(() => props.areaDef.activePanel)
 
 //#region Panel Management
 
-/**
- * Sets the specified panel as the active panel
- * @param panel Panel to activate
- */
 function activatePanel(panel: Panel) {
-  props.areaDef.activePanel = panel
+  props.areaDef.activePanel = panel;
 }
 
-/**
- * Closes the specified panel
- * @param panel Panel to close
- */
 function closePanel(panel: Panel) {
-  store.removePanel(panel)
+  store.removePanel(panel);
 }
 
 //#endregion
@@ -101,29 +98,21 @@ function closePanel(panel: Panel) {
 
 //#region Drag & Drop
 
-/**
- * Starts dragging a panel
- * @param event Drag event
- * @param panel Panel being dragged
- */
 function startDragging(event: DragEvent, panel: Panel) {
-  store.startDragging(event, panel)
+  store.startDragging(event, panel);
 }
 
-/**
- * Stops dragging a panel
- */
 function stopDragging() {
-  store.stopDragging()
+  store.stopDragging();
 }
 
 //#endregion
-
 </script>
 
 <style scoped>
 .dock-area-panel-stack {
   @apply flex flex-col h-full w-full relative overflow-hidden;
+  /* `relative` is needed so the overlay is contained here */
 }
 
 .panel-header {
@@ -131,7 +120,7 @@ function stopDragging() {
 }
 
 .tabs-container {
-  @apply flex items-center h-9 overflow-x-auto;
+  @apply flex items-center h-9 overflow-x-auto overflow-y-hidden;
 }
 
 .tab {

@@ -2,7 +2,7 @@
   <!-- This overlay is shown if a panel is being dragged -->
   <div 
     v-if="store.dragState.isDragging"
-    class="dock-drop-overlay absolute inset-0 pointer-events-none z-50 bg-black/20"
+    class="dock-drop-overlay"
     @dragover.prevent
     @drop.prevent="handleDrop"
   >
@@ -66,13 +66,6 @@
 </template>
 
 <script setup lang="ts">
-/**
- * DockDropOverlay
- * ------------------------------------
- * Changed from "fixed inset-0" to "absolute inset-0",
- * letting its parent container control its dimensions.
- * Removed the old `margins` prop completely.
- */
 
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -119,7 +112,7 @@ const availableRootPositions = computed(() => {
 const shouldShowZoneForDraggedPanel = computed(() => {
   const draggedPanelType = dragState.value.panel?.type;
   const dragAreaId = dragState.value.dropTarget?.areaId;
-  const isSameArea = props.areaId === dragAreaId;
+  const isSameArea = true; //props.areaId === dragAreaId;
 
   const isCenterArea   = (props.absolutePosition === DockPosition.Center);
   const isToolbarArea  = !isCenterArea;  // left, right, top, bottom
@@ -129,6 +122,9 @@ const shouldShowZoneForDraggedPanel = computed(() => {
   // Content panels only drop in center, toolbars only in side areas:
   const areaMatchesType = (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
 
+  console.log(`areaMatchesType(${isCenterArea}, ${isDraggingContent}, ${isDraggingToolbar}) = ${areaMatchesType}`)
+  console.log(`isSameArea = ${isSameArea}`)
+  console.log(props.areaId, dragAreaId);
   return isSameArea && areaMatchesType;
 });
 
@@ -216,8 +212,7 @@ function handleDrop() {
 
 <style scoped>
 .dock-drop-overlay {
-  /* Changed from `fixed inset-0` to `absolute inset-0` */
-  /* background & pointer-events set here for convenience */
+  @apply absolute inset-0 pointer-events-none z-50 bg-black/20;
 }
 
 .drop-zone {

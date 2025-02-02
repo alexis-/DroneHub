@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4">
+  <div class="h-full max-h-full overflow-auto p-4">
     <div class="text-sm text-surface-300 mb-2">File Explorer Panel</div>
     <div class="space-y-2">
       <div v-for="item in items" :key="item.name" class="flex items-center gap-2">

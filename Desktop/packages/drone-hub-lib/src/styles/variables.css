@@ -140,6 +140,30 @@
   --font-size-2xl: 1.5rem;    /* 24px - Major headings */
   --font-size-3xl: 1.875rem;  /* 30px - Large headings */
 
+  /* Tree View Variables
+   * Customizable variables for the tree view component
+   * All measurements use rem units for consistent scaling
+   */
+  --tree-node-height: 2rem;          /* Height of each tree node row */
+  --tree-node-font-size: 1rem;     /* Font size for node labels */
+  --tree-node-icon-size: 1.5rem;      /* Size of node icons */
+  --tree-node-indent-spacing: 0.5rem;  /* Indentation for each level */
+  
+  /* Additional Tree View Spacing */
+  --tree-node-padding-y: 0.15rem;     /* Vertical padding within nodes */
+  --tree-node-padding-x: 0.75rem;      /* Horizontal padding within nodes */
+  --tree-node-icon-margin: 0.10rem;    /* Margin between icon and label */
+  --tree-node-toggle-size: 1.5rem;    /* Size of expand/collapse toggle */
+  --tree-node-toggle-margin: 0.375rem; /* Margin around toggle button */
+  --tree-node-checkbox-size: 1.25rem;  /* Size of checkbox when present */
+  --tree-node-checkbox-margin: 0.625rem; /* Margin around checkbox */
+  
+  /* Tree View Lines (for showing hierarchy) */
+  --tree-line-width: 1px;              /* Width of connection lines */
+  --tree-line-style: solid;            /* Style of connection lines */
+  --tree-line-color: rgb(107 114 128 / 0.5); /* Color of connection lines */
+  --tree-line-indent: 1.25rem;        /* Indentation of vertical lines */
+
   /* Typography - Line Heights
    * Proportional line heights for different contexts
    */

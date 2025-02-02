@@ -1,7 +1,7 @@
 <template>
   <div class="h-screen w-screen flex flex-col">
     <!-- Toolbar with available panels -->
-    <div class="h-12 bg-surface-900 flex items-center px-4 gap-2">
+    <div class="h-12 bg-surface-900 flex-shrink-0 flex items-center px-4 gap-2">
       <button 
         v-for="panel in availablePanels" 
         :key="panel.title"
@@ -41,7 +41,7 @@
     </div>
 
     <!-- Dock system -->
-    <div class="flex-1">
+    <div class="flex-1 min-h-0">
       <DockRoot />
     </div>
   </div>
@@ -51,8 +51,9 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDockStore } from '#stores/dockStore'
-import { ContentPanel, Panel, SidePanel } from '../models/DockClasses'
+import { createPanel, type Panel } from '../models/DockModels'
 import DockRoot from '../DockRoot.vue'
+import { PanelType } from '../models/DockTypes'
 
 //#region Store Setup
 
@@ -86,7 +87,7 @@ function loadLayout(layoutId: string) {
 const panelTemplates = [
   // Content panels
   {
-    type: 'content',
+    type: PanelType.Content,
     title: 'Preview',
     icon: 'view_in_ar',
     component: () => import('./panels/Preview.vue'),
@@ -94,7 +95,7 @@ const panelTemplates = [
     props: {}
   },
   {
-    type: 'content',
+    type: PanelType.Content,
     title: 'Timeline',
     icon: 'timeline',
     component: () => import('./panels/Timeline.vue'),
@@ -104,7 +105,7 @@ const panelTemplates = [
 
   // Toolbar panels
   {
-    type: 'side',
+    type: PanelType.Toolbar,
     title: 'File Explorer',
     icon: 'folder',
     component: () => import('./panels/FileExplorer.vue'),
@@ -112,7 +113,7 @@ const panelTemplates = [
     props: {}
   },
   {
-    type: 'side',
+    type: PanelType.Toolbar,
     title: 'Properties',
     icon: 'tune',
     component: () => import('./panels/Properties.vue'),
@@ -131,16 +132,14 @@ const availablePanels = computed(() => panelTemplates)
 
 function handleDragStart(event: DragEvent, template: typeof panelTemplates[0]) {
   // Create a new panel instance based on the template
-  const panel = Object.assign(
-    template.type === 'content' ? new ContentPanel() : new SidePanel(),
-    {
-      title: template.title,
-      icon: template.icon,
-      component: template.component,
-      closeable: template.closeable,
-      props: template.props
-    }
-  )
+  const panel = createPanel({
+    panelType: template.type,
+    title: template.title,
+    icon: template.icon,
+    component: template.component,
+    closeable: template.closeable,
+    props: template.props
+  });
   
   store.startDragging(event, panel)
 }

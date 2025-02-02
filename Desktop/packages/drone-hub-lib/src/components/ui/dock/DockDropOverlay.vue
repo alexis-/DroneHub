@@ -89,7 +89,7 @@ const props = defineProps<{
  * and only on empty root positions (i.e. no existing area).
  */
 const shouldShowRootDropZones = computed(() => 
-  dragState.value.panel?.type === PanelType.Toolbar
+  dragState.value.panel?.panelType === PanelType.Toolbar
 )
 
 const availableRootPositions = computed(() => {
@@ -110,7 +110,7 @@ const availableRootPositions = computed(() => {
  * 2) The dragged panel's type matches the area type (content vs. toolbar).
  */
 const shouldShowZoneForDraggedPanel = computed(() => {
-  const draggedPanelType = dragState.value.panel?.type;
+  const draggedPanelType = dragState.value.panel?.panelType;
   const dragAreaId = dragState.value.dropTarget?.areaId;
   const isSameArea = true; //props.areaId === dragAreaId;
 
@@ -122,9 +122,6 @@ const shouldShowZoneForDraggedPanel = computed(() => {
   // Content panels only drop in center, toolbars only in side areas:
   const areaMatchesType = (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
 
-  console.log(`areaMatchesType(${isCenterArea}, ${isDraggingContent}, ${isDraggingToolbar}) = ${areaMatchesType}`)
-  console.log(`isSameArea = ${isSameArea}`)
-  console.log(props.areaId, dragAreaId);
   return isSameArea && areaMatchesType;
 });
 

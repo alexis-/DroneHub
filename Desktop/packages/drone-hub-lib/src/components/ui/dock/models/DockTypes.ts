@@ -1,4 +1,4 @@
-import type { Panel } from './DockClasses';
+import type { Panel } from './DockModels';
 
 export enum DockPosition {
   Left = 'left',

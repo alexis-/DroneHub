@@ -1,24 +1,41 @@
 import { defineStore } from 'pinia';
-import { ref, inject, isReactive, toValue, isProxy, toRaw } from 'vue';
+import { ref, inject } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
-import { getOppositePosition, getPanelType, getSplitDirection, validatePosition, validateSplitDirection } from '#components/ui/dock/DockUtils.ts';
+
 import {
-  type IDockAreaDef, 
-  type Panel, 
-  DockLayout,
-  DockAreaPanelStackDef,
-  DockAreaContainerSplitDef,
-} from '#components/ui/dock/models/DockClasses.ts';
-import { 
-  type IDropTarget, 
-  type IDropValidation,
-  type IDragState,
   DockPosition,
-  PanelType
-} from '#components/ui/dock/models/DockTypes.ts';
-import { LoggerServiceKey } from '#models/injection-keys.ts';
-import { getCircularReplacer } from '#utils/json-utils.ts';
-import { AppError } from '#models/app-errors.ts';
+  PanelType,
+  type IDropTarget,
+  type IDragState,
+  type IDropValidation
+} from '#components/ui/dock/models/DockTypes';
+
+import {
+  type DockLayout,
+  type DockAreaDef,
+  type DockAreaPanelStack,
+  type Panel,
+  createDockLayout,
+  createDockAreaPanelStack,
+  createDockAreaContainerSplit,
+  isPanelStack,
+  isContainerSplit,
+  addPanelToStack,
+  closePanelInStack,
+  type IRootArea
+} from '#components/ui/dock/models/DockModels';
+
+import {
+  validatePosition,
+  validateSplitDirection,
+  getOppositePosition,
+  getSplitDirection,
+  getPanelType
+} from '#components/ui/dock/DockUtils';
+
+import { LoggerServiceKey } from '#models/injection-keys';
+import { getCircularReplacer } from '#utils/json-utils';
+import { AppError } from '#models/app-errors';
 
 const CONTEXT = 'dockStore';
 
@@ -27,52 +44,60 @@ export const useDockStore = defineStore('dock', () => {
 
   // Layouts
   const savedLayouts = ref<Map<string, DockLayout>>(new Map());
-  const currentLayout = ref<DockLayout>(DockLayout.defaultLayout());
 
-  // Areas
-  const areaMap = ref<Map<string, IDockAreaDef>>(new Map([
-    [currentLayout.value.areas.center.id, currentLayout.value.areas.center]
-  ]));
+  // Current layout
+  const currentLayout = ref<DockLayout>(createDockLayout({ name: 'Default Layout' }));
+
+  // Keep track of each area node by ID
+  const areaMap: Map<string, DockAreaDef> = new Map([
+    // The center area always exists
+    [currentLayout.value.areas.center.areaDef!.id, currentLayout.value.areas.center.areaDef!],
+  ]);
 
   // Drag & Drop
   const dragState = ref<IDragState>({
     isDragging: false,
     panel: null,
-    dropTarget: null
+    dropTarget: null,
   });
 
 
-  // #region Area Utils
+  //#region Area & Panel Utils
 
+  /**
+   * Finds a panel by ID in any known panel stack.
+   */
   function findPanelById(panelId: string): Panel | null {
-    const areaIterator = areaMap.value.values();
-    
-    for (const area of areaIterator) {
-      if (area instanceof DockAreaPanelStackDef == false)
+    for (const area of areaMap.values()) {
+      if (!isPanelStack(area))
         continue;
 
-      const panelIdx = area.panelStack.findIndex(p => p.id === panelId);
+      const found = area.panelStack.find(p => p.id === panelId);
 
-      if (panelIdx !== -1)
-        return area.panelStack[panelIdx];
+      if (found)
+        return found;
     }
 
     return null;
   }
 
   /**
-   * Finds the first panel stack starting from the specified area and following the specified direction.
+   * Finds the first panel stack in the sub-tree. This is used
+   * to attach content panels if an area is not explicitly provided.
    * @param direction 
    * @param area 
    * @returns 
    */
-  function findFirstPanelStackFollowingDirection(direction: DockPosition, area: IDockAreaDef | null): DockAreaPanelStackDef | null {
-    if (area instanceof DockAreaPanelStackDef) {
+  function findFirstPanelStackFollowingDirection(
+    direction: DockPosition,
+    area: DockAreaDef | null
+  ): DockAreaPanelStack | null {
+    if (isPanelStack(area)) {
       return area;
     }
 
-    if (area instanceof DockAreaContainerSplitDef) {
-      let childArea: IDockAreaDef;
+    if (isContainerSplit(area)) {
+      let childArea: DockAreaDef;
 
       switch (direction) {
         case DockPosition.Left:
@@ -101,15 +126,18 @@ export const useDockStore = defineStore('dock', () => {
    * @param area The area to validate, or undefined
    * @returns A valid center area
    */
-  function getSafeCenterArea(area?: DockAreaPanelStackDef): DockAreaPanelStackDef {
+  function getSafeCenterArea(area?: DockAreaPanelStack): DockAreaPanelStack {
     if (area && getPanelType(area.absolutePosition) !== PanelType.Content) {
       logger.error(CONTEXT, 'Invalid area type', area);
       throw new AppError(CONTEXT, 'Invalid area type');
     }
 
-    area = area ?? findFirstPanelStackFollowingDirection(DockPosition.Left, currentLayout.value.areas.center);
+    if (area)
+      return area;
 
-    return area;
+    const centerRoot = currentLayout.value.areas.center.areaDef;
+
+    return findFirstPanelStackFollowingDirection(DockPosition.Left, centerRoot);
   }
 
   /**
@@ -117,18 +145,30 @@ export const useDockStore = defineStore('dock', () => {
    * @param area The area to validate, or undefined
    * @returns A valid toolbar area
    */
-  function getSafeToolbarArea(area?: DockAreaPanelStackDef): DockAreaPanelStackDef {
+  function getSafeToolbarArea(area?: DockAreaPanelStack): DockAreaPanelStack {
     if (area && getPanelType(area.absolutePosition) !== PanelType.Toolbar) {
       logger.error(CONTEXT, 'Invalid area type', area);
       throw new AppError(CONTEXT, 'Invalid area type');
     }
 
-    area = area ?? findFirstPanelStackFollowingDirection(DockPosition.Top, currentLayout.value.areas.left);
-
-    // Create left area if it doesn't exist
+    // If area is not provided, try to put it on the left area’s sub-tree
     if (!area) {
-      area = new DockAreaPanelStackDef({absolutePosition: DockPosition.Left});
-      currentLayout.value.areas.left = area;
+      let leftRoot = currentLayout.value.areas.left?.areaDef;
+
+      area = findFirstPanelStackFollowingDirection(DockPosition.Top, leftRoot);
+
+      // If we don’t have a left root yet, create it
+      if (!area) {
+        area = createDockAreaPanelStack({ absolutePosition: DockPosition.Left });
+
+        currentLayout.value.areas.left = {
+          absolutePosition: DockPosition.Left,
+          areaDef: area,
+          sizePx: 200,
+        };
+        
+        areaMap.set(area.id, area);
+      }
     }
 
     return area;
@@ -139,19 +179,22 @@ export const useDockStore = defineStore('dock', () => {
 
   //#region Area & Panel Management
 
+  /**
+   * Moves an existing panel to a new area or root position.
+   */
   function movePanel(
     panel: Panel,
     relativePosition: DockPosition = DockPosition.Center,
-    area?: DockAreaPanelStackDef | DockPosition,
-    makeActive: boolean = true): DockAreaPanelStackDef {
-    // Sanity checks
+    area?: DockAreaPanelStack | DockPosition,
+    makeActive: boolean = true
+  ): DockAreaPanelStack {
     if (!panel.parent) {
-      console.warn(CONTEXT, 'Panel is orphaned, use addPanel instead', area, panel);
+      logger.warn(CONTEXT, 'Panel is orphaned, use addPanel instead', area, panel);
       return addPanel(panel, relativePosition, area, makeActive);
     }
 
     try {
-      area = _getSafeAreaInternal(area, panel);
+      area = _resolveAreaInternal(area, panel);
       
       // Remove and re-add panel to new area
       removePanel(panel);
@@ -159,6 +202,7 @@ export const useDockStore = defineStore('dock', () => {
 
       return area;
     } catch (e) {
+      // If area was a DockPosition, revert
       if (typeof area === 'string' && validatePosition(area)) {
         currentLayout.value.areas[area] = undefined;
       }
@@ -166,22 +210,27 @@ export const useDockStore = defineStore('dock', () => {
     }
   }
 
+  /**
+   * Adds a new panel (which has no parent yet) to a specified area or root position.
+   */
   function addPanel(
     panel: Panel,
     relativePosition: DockPosition = DockPosition.Center,
-    area?: DockAreaPanelStackDef | DockPosition,
-    makeActive: boolean = true): DockAreaPanelStackDef {
-    // Sanity checks
+    area?: DockAreaPanelStack | DockPosition,
+    makeActive: boolean = true
+  ): DockAreaPanelStack {
+      // If the panel already has a parent, use movePanel instead
     if (panel.parent) {
-      console.warn(CONTEXT, 'Panel has parent, use movePanel instead', area, panel);
+      logger.warn(CONTEXT, 'Panel has parent, use movePanel instead', area, panel);
       return movePanel(panel, relativePosition, area, makeActive);
     }
 
     try {
-      area = _getSafeAreaInternal(area, panel);
+      area = _resolveAreaInternal(area, panel);
 
       return _addPanelInternal(panel, relativePosition, area, makeActive);
     } catch (e) {
+      // If area was a DockPosition, revert
       if (typeof area === 'string' && validatePosition(area)) {
         currentLayout.value.areas[area] = undefined;
       }
@@ -189,163 +238,193 @@ export const useDockStore = defineStore('dock', () => {
     }
   }
 
-  function _getSafeAreaInternal(areaOrPosition: DockAreaPanelStackDef | DockPosition, panel: Panel): DockAreaPanelStackDef {
-    // If area is DockPosition, create new root area
+  /**
+   * Internal helper: resolves the target area or creates a new root area if a DockPosition is given.
+   */
+  function _resolveAreaInternal(areaOrPosition: DockAreaPanelStack | DockPosition, panel: Panel): DockAreaPanelStack {
+    // If areaOrPosition is DockPosition, create new root area
     if (typeof areaOrPosition === 'string') {
       const absolutePosition = areaOrPosition;
       
       if (validatePosition(absolutePosition) === false) {
-        console.error(CONTEXT, 'Invalid area position', absolutePosition);
+        logger.error(CONTEXT, 'Invalid area position', absolutePosition);
         throw new AppError(CONTEXT, 'Invalid area position');
       }
 
       if (currentLayout.value.areas[absolutePosition]) {
-        console.error(CONTEXT, 'Root area already exists', absolutePosition);
+        logger.error(CONTEXT, 'Root area already exists', absolutePosition);
         throw new AppError(CONTEXT, 'Root area already exists');
       }
 
-      const newArea = new DockAreaPanelStackDef({absolutePosition: absolutePosition});
-      currentLayout.value.areas[absolutePosition] = newArea;
-      areaMap.value.set(newArea.id, newArea);
+      // Create a new panel stack as root
+      const newArea = createDockAreaPanelStack({absolutePosition: absolutePosition});
+      areaMap.set(newArea.id, newArea);
+      
+      // Insert a new IRootArea in the layout with a default size
+      currentLayout.value.areas[absolutePosition] = {
+        absolutePosition,
+        areaDef: newArea,
+        sizePx: 200
+      };
 
       return newArea;
     }
 
-    // Area sanity check
+    // Otherwise areaOrPosition is an existing area
     const area = areaOrPosition;
 
-    if (area && getPanelType(area.absolutePosition) !== panel.type) {
-      logger.error(CONTEXT, 'Invalid panel type for area', area, panel);
-      throw new AppError(CONTEXT, 'Invalid panel type for area');
+    if (!isPanelStack(area)) {
+      // Must be a panel stack for adding or moving a panel
+      logger.error(CONTEXT, 'Target area is not a panel stack', area, panel);
+      throw new AppError(CONTEXT, 'Invalid area for panel');
     }
 
-    if (area && area instanceof DockAreaPanelStackDef == false) {
-      logger.error(CONTEXT, 'Invalid area type', area);
-      throw new AppError(CONTEXT, 'Invalid area type');
+    // Check if the panel types are consistent
+    if (getPanelType(area.absolutePosition) !== panel.panelType) {
+      logger.error(CONTEXT, 'Mismatched panel type/area', area, panel);
+      throw new AppError(CONTEXT, 'Invalid panel type for area');
     }
 
     return area;
   }
 
+  /**
+   * Internal helper: actually adds the panel to the stack or splits the area if needed.
+   */
   function _addPanelInternal(
     panel: Panel,
     relativePosition: DockPosition = DockPosition.Center,
-    area?: DockAreaPanelStackDef,
-    makeActive: boolean = true): DockAreaPanelStackDef {
-    // area = isProxy(area) ? toRaw(area) : area;
-    // panel = isProxy(panel) ? toRaw(panel) : panel;
-
-    if (panel.type === PanelType.Content) {
+    targetStack?: DockAreaPanelStack,
+    makeActive: boolean = true): DockAreaPanelStack {
+    // For content panels, ensure we have a center area stack
+    if (panel.panelType === PanelType.Content) {
       // TODO: Track and use currently focused content area if no area is provided
-      area = getSafeCenterArea(area);
+      targetStack = getSafeCenterArea(targetStack);
     }
 
-    else // PanelType.Toolbar
-      area = getSafeToolbarArea(area);
+    // For toolbars, ensure we have a valid toolbar area
+    else {
+      targetStack = getSafeToolbarArea(targetStack);
+    }
     
-    // Handle split if relativePosition is not Center
+    // If we are splitting (Left/Right/Top/Bottom relative to the target)
     if (relativePosition !== DockPosition.Center) {
-      // Determine split direction based on relative position
-      const splitDirection = getSplitDirection(relativePosition);
-
-      if (!validateSplitDirection(area.absolutePosition, relativePosition)) {
-        logger.error(CONTEXT, 'Invalid split direction', area, splitDirection);
+      if (!validateSplitDirection(targetStack.absolutePosition, relativePosition)) {
+        logger.error(CONTEXT, 'Invalid split direction', targetStack, relativePosition);
         throw new AppError(CONTEXT, 'Invalid split direction');
       }
 
       // Create container split
-      const containerSplit = new DockAreaContainerSplitDef({
-        absolutePosition: area.absolutePosition,
-        relativePosition: area.relativePosition,
-        splitDirection: splitDirection,
-        parent: area.parent
+      const newContainer = createDockAreaContainerSplit({
+        absolutePosition: targetStack.absolutePosition,
+        relativePosition: targetStack.relativePosition,
+        splitDirection: getSplitDirection(relativePosition),
+        parent: targetStack.parent
       });
-      areaMap.value.set(containerSplit.id, containerSplit);
+      areaMap.set(newContainer.id, newContainer);
       
       // Create new panel stack for the dropped panel
-      const newPanelStack = new DockAreaPanelStackDef({
-        absolutePosition: area.absolutePosition,
+      const newPanelStack = createDockAreaPanelStack({
+        absolutePosition: targetStack.absolutePosition,
         relativePosition: relativePosition,
       });
-      areaMap.value.set(newPanelStack.id, newPanelStack);
+      areaMap.set(newPanelStack.id, newPanelStack);
 
       // Add panel to the new stack
-      newPanelStack.addPanel(panel, makeActive);
+      addPanelToStack(newPanelStack, panel, makeActive);
 
       // Set container as new parent for both areas
-      Object.assign(area.parent, containerSplit);
-      Object.assign(newPanelStack.parent, containerSplit);
+      targetStack.parent = newContainer;
+      newPanelStack.parent = newContainer;
 
       // Organize areas based on relative position
-      area.relativePosition = getOppositePosition(relativePosition);
+      targetStack.relativePosition = getOppositePosition(relativePosition);
 
-      debugger;
       if (relativePosition === DockPosition.Left || relativePosition === DockPosition.Top) {
-        Object.assign(containerSplit.leftOrTop, newPanelStack);
-        containerSplit.rightOrBottom = area;
+        newContainer.leftOrTop = newPanelStack;
+        newContainer.rightOrBottom = targetStack;
       } else {
-        containerSplit.leftOrTop = area;
-        Object.assign(containerSplit.rightOrBottom, newPanelStack);
+        newContainer.leftOrTop = targetStack;
+        newContainer.rightOrBottom = newPanelStack;
       }
 
-      // Update layout reference if area was a root area
-      if (containerSplit.parent === null) {
-        currentLayout.value.areas[containerSplit.absolutePosition] = containerSplit;
+      // Update the root reference if we replaced a root stack
+      if (!newContainer.parent) {
+        // This container is now at root. Find the matching root area in layout:
+        const pos = newContainer.absolutePosition;
+
+        if (!currentLayout.value.areas[pos]) {
+          currentLayout.value.areas[pos] = {
+            absolutePosition: pos,
+            areaDef: newContainer,
+            sizePx: 200,
+          };
+        }
+        
+        else {
+          // Overwrite the areaDef with the container
+          currentLayout.value.areas[pos].areaDef = newContainer;
+        }
       }
       // Otherwise update the area's previous parent to point to the new container
-      else if (containerSplit.parent instanceof DockAreaContainerSplitDef) {
-        if (containerSplit.parent.leftOrTop === area) {
-          containerSplit.parent.leftOrTop = containerSplit;
+      else if (isContainerSplit(newContainer.parent)) {
+        if (newContainer.parent.leftOrTop === targetStack) {
+          newContainer.parent.leftOrTop = newContainer;
         } else {
-          containerSplit.parent.rightOrBottom = containerSplit;
+          newContainer.parent.rightOrBottom = newContainer;
         }
       }
       else {
-        logger.error(CONTEXT, 'Invalid parent type', containerSplit.parent);
+        logger.error(CONTEXT, 'Invalid parent type', newContainer.parent);
         throw new AppError(CONTEXT, 'Invalid parent type');
       }
 
       return newPanelStack;
     }
 
-    area.addPanel(panel, makeActive);
+    addPanelToStack(targetStack, panel, makeActive);
 
-    return area;
+    return targetStack;
   }
 
+  /**
+   * Removes a panel from the layout. If the panel stack becomes empty,
+   * we may remove that area from the layout.
+   */
   function removePanel(panelOrId: string | Panel): boolean {
     const panel = typeof panelOrId === 'string' ? findPanelById(panelOrId) : panelOrId;
 
     // Sanity checks
     if (!panel) {
-      console.warn(CONTEXT, 'Panel not found', panel);
+      logger.warn(CONTEXT, 'Panel not found', panel);
       return false;
     }
 
     if (!panel.parent) {
-      console.warn(CONTEXT, 'Panel is orphaned', panel);
+      logger.warn(CONTEXT, 'Panel is orphaned', panel);
       return false;
     }
 
-    _removePanelInternal(panel);
+    // Actually remove from the panelStack
+    const oldArea = panel.parent;
+
+    if (!closePanelInStack(oldArea, panel)) {
+      logger.warn(CONTEXT, 'Close panelInStack returned false', panel);
+      return false;
+    }
+
+    // Possibly remove the now-empty area from the layout
+    collapseAreaIfEmpty(oldArea);
 
     return true;
   }
 
-  function _removePanelInternal(panel: Panel) {
-    const oldArea = panel.parent;
-
-    if (!oldArea.closePanel(panel)) {
-      console.warn(CONTEXT, 'Panel not found in area', panel);
-      return;
-    }
-
-    collapseArea(oldArea);
-  }
-
-  function collapseArea(area: IDockAreaDef) {
-    // Only panel stacks can be empty and trigger collapse
-    if (!(area instanceof DockAreaPanelStackDef) || area.panelStack.length > 0) {
+  /**
+   * If a panel stack area is now empty, remove it from the layout.
+   */
+  function collapseAreaIfEmpty(area: DockAreaPanelStack) {
+    // If it still has panels, skip
+    if (area.panelStack.length > 0) {
       return;
     }
 
@@ -356,50 +435,59 @@ export const useDockStore = defineStore('dock', () => {
       // Don't collapse the center area - it should always exist
       if (area.absolutePosition !== DockPosition.Center) {
         currentLayout.value.areas[area.absolutePosition] = undefined;
-        areaMap.value.delete(area.id);
+        areaMap.delete(area.id);
       }
       
       return;
     }
 
-    // Parent must be a container split since we have a parent
-    if (!(parent instanceof DockAreaContainerSplitDef)) {
+    // Otherwise, the parent must be a container split
+    if (!isContainerSplit(parent)) {
       logger.error(CONTEXT, 'Invalid parent type', parent);
       throw new AppError(CONTEXT, 'Invalid parent type');
     }
 
     // Remove the parent from the map
-    areaMap.value.delete(parent.id);
+    areaMap.delete(parent.id);
 
     // Get the sibling that will remain
-    const remainingArea = parent.leftOrTop === area ? parent.rightOrBottom : parent.leftOrTop;
+    const siblingArea = parent.leftOrTop === area ? parent.rightOrBottom : parent.leftOrTop;
     
-    if (!remainingArea) {
+    if (!siblingArea) {
       logger.error(CONTEXT, 'Invalid dock structure - missing sibling area', parent);
       throw new AppError(CONTEXT, 'Invalid dock structure');
     }
 
     // Update the remaining area's parent to be the container's parent
-    remainingArea.parent = parent.parent;
+    siblingArea.parent = parent.parent;
     
     // If container was a root area, update the layout reference
     if (!parent.parent) {
-      currentLayout.value.areas[parent.absolutePosition] = remainingArea;
+      const rootObj = currentLayout.value.areas[parent.absolutePosition];
+
+      if (!rootObj) {
+        logger.error(CONTEXT, 'Invalid dock structure - missing parent area', parent);
+        throw new AppError(CONTEXT, 'Invalid dock structure');
+      }
+      
+      rootObj.areaDef = siblingArea;
+      
       return;
     }
 
     // Container has a parent, replace the container with the remaining area in its parent
     const grandParent = parent.parent;
-    if (grandParent instanceof DockAreaContainerSplitDef) {
+
+    if (isContainerSplit(grandParent)) {
       if (grandParent.leftOrTop === parent) {
-        grandParent.leftOrTop = remainingArea;
+        grandParent.leftOrTop = siblingArea;
       } else {
-        grandParent.rightOrBottom = remainingArea;
+        grandParent.rightOrBottom = siblingArea;
       }
     }
     else {
-      console.error(CONTEXT, 'Invalid parent type', parent);
-      throw new AppError(CONTEXT, 'Invalid parent type');
+      logger.error(CONTEXT, 'Invalid grand-parent type while collapsing', grandParent);
+      throw new AppError(CONTEXT, 'Invalid grand-parent type while collapsing');
     }
   }
 
@@ -409,8 +497,6 @@ export const useDockStore = defineStore('dock', () => {
   //#region Drag & Drop
 
   function startDragging(event: DragEvent, panel: Panel) {
-    logger.debug(CONTEXT, "startDragging", event, panel);
-
     // Ensure the event has a dataTransfer object
     if (!event.dataTransfer) {
       logger.warn(CONTEXT, 'Event has no data transfer', event);
@@ -435,8 +521,6 @@ export const useDockStore = defineStore('dock', () => {
   }
 
   function updateDropTarget(target: IDropTarget | null) {
-    logger.debug(CONTEXT, "updateDropTarget with target:", target);
-
     if (target && validateDrop(target).isValid == false) {
       dragState.value.dropTarget = null;
       return false;
@@ -448,8 +532,6 @@ export const useDockStore = defineStore('dock', () => {
   }
 
   function stopDragging() {
-    console.log("stopDragging");
-
     dragState.value.isDragging = false;
     dragState.value.panel = null;
     dragState.value.dropTarget = null;
@@ -457,30 +539,31 @@ export const useDockStore = defineStore('dock', () => {
 
   function handleDrop(target: IDropTarget): boolean {
     const validation = validateDrop(target)
-    console.log("handleDrop", validation);
 
     if (!validation.isValid || !dragState.value.panel) {
-      logger.debug(CONTEXT, 'Invalid drop target: ' + validation.message, target, dragState);
+      logger.debug(CONTEXT, 'Invalid drop target: ', validation.message, target, dragState);
       return false;
     }
 
-    const areaOrPosition = target.areaId
-      ? areaMap.value.get(target.areaId)
-      : target.absolutePosition;
+    const { areaId, absolutePosition, relativePosition } = target;
+
+    const areaOrPosition = areaId
+      ? areaMap.get(areaId)
+      : absolutePosition;
     
-    if (typeof areaOrPosition !== 'string' && areaOrPosition instanceof DockAreaPanelStackDef == false) {
-      logger.error(CONTEXT, 'Invalid drop target ', null, target);
-      throw new AppError(CONTEXT, 'Invalid drop target ', null, target);
+    if (typeof areaOrPosition !== 'string' && !isPanelStack(areaOrPosition)) {
+      logger.error(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
+      throw new AppError(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
     }
 
     const panel = dragState.value.panel;
 
     if (panel.parent)
-      //@ts-ignore - Typescript fails to evaluate area's true type
-      movePanel(panel, target.relativePosition, areaOrPosition);
+      //@ts-ignore - Typescript fails to evaluate areaOrPosition's true type
+      movePanel(panel, relativePosition, areaOrPosition);
     else
       //@ts-ignore
-      addPanel(panel, target.relativePosition, areaOrPosition);
+      addPanel(panel, relativePosition, areaOrPosition);
 
     return true;
   }
@@ -494,13 +577,13 @@ export const useDockStore = defineStore('dock', () => {
       return { isValid: false, message: 'No panel being dragged' };
     }
 
-    // Only allow empty areaId when the root area at the target position doesn't exist
+    // If areaId is not set but that root area already exists => invalid
     if (!target.areaId && currentLayout.value.areas[target.absolutePosition]) {
       return { isValid: false, message: 'No target area' };
     }
 
     const panel = dragState.value.panel;
-    const isContentPanel = panel.type === PanelType.Content;
+    const isContentPanel = panel.panelType === PanelType.Content;
 
     // Content panels can only be dropped in center position
     if (isContentPanel && getPanelType(target.absolutePosition) !== PanelType.Content) {
@@ -530,18 +613,20 @@ export const useDockStore = defineStore('dock', () => {
   //#region Layout Management
 
   function saveLayout(name: string | null) {
-    // Are we saving as a new layout?
-    if (!name || currentLayout.value.name != name) {
-      currentLayout.value = { id: uuidv4(), ...currentLayout.value, name }; // TODO: Check if deep clone needed
+    if (!name || currentLayout.value.name !== name) {
+      currentLayout.value = {
+        ...currentLayout.value,
+        id: uuidv4(),
+        name,
+      };
     }
-    
     savedLayouts.value.set(currentLayout.value.id, currentLayout.value);
   }
 
   function loadLayout(layoutId: string) {
-    if (!savedLayouts.value.has(layoutId))
+    if (!savedLayouts.value.has(layoutId)) {
       throw new Error(`Layout ${layoutId} not found`);
-
+    }
     currentLayout.value = savedLayouts.value.get(layoutId);
   }
 
@@ -551,14 +636,20 @@ export const useDockStore = defineStore('dock', () => {
   return {
     layouts: savedLayouts,
     currentLayout,
+    areaMap,
     dragState,
+
+    addPanel,
+    movePanel,
+    removePanel,
+
     startDragging,
     stopDragging,
     updateDropTarget,
     handleDrop,
     validateDrop,
-    removePanel,
+
     saveLayout,
-    loadLayout
-  }
-})
+    loadLayout,
+  };
+});

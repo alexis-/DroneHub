@@ -1,99 +1,129 @@
 <template>
-  <div class="dock-root w-full h-full flex flex-col" ref="rootRef">
+  <!-- 
+    DockRoot with horizontally arranged left -> center -> right.
+    Inside the center container, we vertically arrange top -> center -> bottom.
+    This ensures top and bottom are constrained between left and right.
+  -->
+  <div class="dock-root" ref="rootRef">
 
-    <!-- Top panel -->
-    <div class="dock-top" v-if="currentLayout.areas.top" ref="topRef">
-      <component :is="topComponent" :areaDef="currentLayout.areas.top" v-if="topComponent" />
+    <!-- Left panel -->
+    <div 
+      v-if="leftRoot"
+      class="dock-left"
+      :style="leftStyle"
+      ref="leftRef"
+    >
+      <component
+        :is="leftRoot.areaDef?.dockComponent"
+        :areaDef="leftRoot.areaDef"
+      />
     </div>
 
-    <!-- Splitter between top and middle -->
-    <div 
-      v-if="currentLayout.areas.top"
-      class="root-splitter h-2 cursor-row-resize bg-surface-600 hover:bg-primary-400 transition-colors"
-      @mousedown="startResize('horizontal', 'top', $event)"
+    <!-- Splitter between left and center -->
+    <div
+      v-if="leftRoot"
+      class="root-splitter w-2 cursor-col-resize"
+      @mousedown="onRootMousedown('vertical', leftRoot, $event)"
     />
 
-    <!-- Middle row -->
-    <div class="dock-middle flex-1 flex relative" ref="middleRef">
-      <!-- Left panel -->
-      <div class="dock-left" v-if="currentLayout.areas.left" ref="leftRef">
-        <component :is="leftComponent" :areaDef="currentLayout.areas.left" v-if="leftComponent" />
+    <!-- Middle container: top -> center -> bottom stacked vertically -->
+    <div class="dock-middle" ref="middleRef">
+
+      <!-- Top panel -->
+      <div
+        v-if="topRoot"
+        class="dock-top"
+        :style="topStyle"
+        ref="topRef"
+      >
+        <component
+          :is="topRoot.areaDef?.dockComponent"
+          :areaDef="topRoot.areaDef"
+        />
       </div>
 
-      <!-- Splitter between left and center -->
-      <div 
-        v-if="currentLayout.areas.left"
-        class="root-splitter w-2 cursor-col-resize bg-surface-600 hover:bg-primary-400 transition-colors"
-        @mousedown="startResize('vertical', 'left', $event)"
+      <!-- Splitter between top and center -->
+      <div
+        v-if="topRoot"
+        class="root-splitter h-2 cursor-row-resize"
+        @mousedown="onRootMousedown('horizontal', topRoot, $event)"
       />
 
       <!-- Center area (made relative for overlay containment) -->
-      <div class="dock-center flex-1 relative" ref="centerRef">
-        <component :is="centerComponent" :areaDef="currentLayout.areas.center" v-if="centerComponent" />
+      <div class="dock-center" ref="centerRef">
+        <component
+          :is="centerRoot.areaDef?.dockComponent"
+          :areaDef="centerRoot.areaDef"
+        />
 
         <!-- Root-level drop overlay is contained here -->
-        <DockDropOverlay 
-          v-if="store.dragState.isDragging" 
+        <DockDropOverlay
+          v-if="store.dragState.isDragging"
           :root="true"
           class="absolute inset-0"
         />
       </div>
 
-      <!-- Splitter between center and right -->
+      <!-- Splitter between center and bottom -->
       <div
-        v-if="currentLayout.areas.right"
-        class="root-splitter w-2 cursor-col-resize bg-surface-600 hover:bg-primary-400 transition-colors"
-        @mousedown="startResize('vertical', 'right', $event)"
+        v-if="bottomRoot"
+        class="root-splitter h-2 cursor-row-resize"
+        @mousedown="onRootMousedown('horizontal', bottomRoot, $event)"
       />
 
-      <!-- Right panel -->
-      <div class="dock-right" v-if="currentLayout.areas.right" ref="rightRef">
-        <component :is="rightComponent" :areaDef="currentLayout.areas.right" v-if="rightComponent" />
+      <!-- Bottom panel -->
+      <div
+        v-if="bottomRoot"
+        class="dock-bottom"
+        :style="bottomStyle"
+        ref="bottomRef"
+      >
+        <component
+          :is="bottomRoot.areaDef?.dockComponent"
+          :areaDef="bottomRoot.areaDef"
+        />
       </div>
     </div>
 
-    <!-- Splitter between middle and bottom -->
+    <!-- Splitter between center and right -->
     <div
-      v-if="currentLayout.areas.bottom"
-      class="root-splitter h-2 cursor-row-resize bg-surface-600 hover:bg-primary-400 transition-colors"
-      @mousedown="startResize('horizontal', 'bottom', $event)"
+      v-if="rightRoot"
+      class="root-splitter w-2 cursor-col-resize"
+      @mousedown="onRootMousedown('vertical', rightRoot, $event)"
     />
 
-    <!-- Bottom panel -->
-    <div class="dock-bottom" v-if="currentLayout.areas.bottom" ref="bottomRef">
-      <component :is="bottomComponent" :areaDef="currentLayout.areas.bottom" v-if="bottomComponent" />
+    <!-- Right panel -->
+    <div
+      v-if="rightRoot"
+      class="dock-right"
+      :style="rightStyle"
+      ref="rightRef"
+    >
+      <component
+        :is="rightRoot.areaDef?.dockComponent"
+        :areaDef="rightRoot.areaDef"
+      />
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-
-import { onUnmounted, onMounted, computed, defineAsyncComponent, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useDockStore } from '#stores/dockStore'
-import DockDropOverlay from './DockDropOverlay.vue'
-
+import { onUnmounted, computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useDockStore } from '#stores/dockStore';
+import DockDropOverlay from './DockDropOverlay.vue';
+import { useRootResizing } from './DockResizing';
 
 //#region Store
 
-const store = useDockStore()
-const { currentLayout } = storeToRefs(store)
+const store = useDockStore();
+const { currentLayout } = storeToRefs(store);
 
 //#endregion
 
 
-//#region Components
-
-const centerComponent = computed(() => defineAsyncComponent(() => currentLayout.value.areas.center?.dockComponent()));
-const leftComponent   = computed(() => defineAsyncComponent(() => currentLayout.value.areas.left?.dockComponent()));
-const rightComponent  = computed(() => defineAsyncComponent(() => currentLayout.value.areas.right?.dockComponent()));
-const topComponent    = computed(() => defineAsyncComponent(() => currentLayout.value.areas.top?.dockComponent()));
-const bottomComponent = computed(() => defineAsyncComponent(() => currentLayout.value.areas.bottom?.dockComponent()));
-
-//#endregion
-
-
-//#region Refs
+//#region References
 
 const rootRef = ref<HTMLElement | null>(null);
 const topRef = ref<HTMLElement | null>(null);
@@ -101,117 +131,177 @@ const bottomRef = ref<HTMLElement | null>(null);
 const leftRef = ref<HTMLElement | null>(null);
 const rightRef = ref<HTMLElement | null>(null);
 const middleRef = ref<HTMLElement | null>(null);
+const centerRef = ref<HTMLElement | null>(null);
 
 //#endregion
 
 
-//#region Resizing Logic
+//#region Root Resizing Logic
 
-const isRootResizing = ref(false);
-let rootStartPos = { x: 0, y: 0 };
-let rootStartHeight = 0;
-let rootStartWidth = 0;
-let resizingEdge: 'top'|'bottom'|'left'|'right'|null = null;
-let resizeDirection: 'horizontal'|'vertical'|null = null;
+const {
+  state: rootResizeState,
+  startResize,
+  handleMouseMove,
+  stopResize
+} = useRootResizing();
 
 /**
- * Start resizing the root dock area in a particular edge/direction
+ * Fired on mousedown for top/bottom/left/right splitters
+ * @param direction 'horizontal' or 'vertical'
+ * @param rootArea The IRootArea to resize
+ * @param event 
  */
-function startResize(direction: 'horizontal'|'vertical', edge: 'top'|'bottom'|'left'|'right', event: MouseEvent) {
-  isRootResizing.value = true;
-  resizingEdge = edge;
-  resizeDirection = direction;
-  
-  rootStartPos = { x: event.clientX, y: event.clientY };
-
-  if (edge === 'top' && topRef.value) {
-    rootStartHeight = topRef.value.offsetHeight;
-  }
-  else if (edge === 'bottom' && bottomRef.value) {
-    rootStartHeight = bottomRef.value.offsetHeight;
-  }
-  else if (edge === 'left' && leftRef.value) {
-    rootStartWidth = leftRef.value.offsetWidth;
-  }
-  else if (edge === 'right' && rightRef.value) {
-    rootStartWidth = rightRef.value.offsetWidth;
-  }
-
-  document.addEventListener('mousemove', handleRootResize);
-  document.addEventListener('mouseup', stopRootResize);
+function onRootMousedown(direction: 'horizontal' | 'vertical', rootArea, event: MouseEvent) {
+  startResize(direction, rootArea, event);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 }
 
 /**
- * Handle the ongoing mouse movement to resize
+ * We measure the dock-root container dimension on every mousemove,
+ * so we can clamp the root area’s size to no more than 40% of the total width/height.
+ * This ensures the store never records a size > 40% no matter what CSS does.
  */
-function handleRootResize(event: MouseEvent) {
-  if (!isRootResizing.value) return;
+function onMouseMove(event: MouseEvent) {
+  // Determine the container dimension once per mouse move
+  let containerSize = 0;
 
-  const dx = event.clientX - rootStartPos.x;
-  const dy = event.clientY - rootStartPos.y;
+  // We rely on the current `rootResizeState.direction` to decide
+  // which dimension (width or height) we measure.
+  if (rootResizeState.direction === 'horizontal') {
+    containerSize = rootRef.value?.clientHeight || 0;
+  } else if (rootResizeState.direction === 'vertical') {
+    containerSize = rootRef.value?.clientWidth || 0;
+  }
 
-  if (resizeDirection === 'horizontal') {
-    if (resizingEdge === 'top' && topRef.value) {
-      const newHeight = rootStartHeight + dy;
-      topRef.value.style.height = newHeight + 'px';
-    }
-    else if (resizingEdge === 'bottom' && bottomRef.value) {
-      const newHeight = rootStartHeight - dy;
-      bottomRef.value.style.height = newHeight + 'px';
-    }
-  }
-  else if (resizeDirection === 'vertical') {
-    if (resizingEdge === 'left' && leftRef.value) {
-      const newWidth = rootStartWidth + dx;
-      leftRef.value.style.width = newWidth + 'px';
-    }
-    else if (resizingEdge === 'right' && rightRef.value) {
-      const newWidth = rootStartWidth - dx;
-      rightRef.value.style.width = newWidth + 'px';
-    }
-  }
+  // Pass that container size to our resizing logic
+  handleMouseMove(event, containerSize);
 }
 
-/**
- * End the resize, remove event listeners
- */
-function stopRootResize() {
-  isRootResizing.value = false;
-  resizingEdge = null;
-  resizeDirection = null;
-
-  document.removeEventListener('mousemove', handleRootResize);
-  document.removeEventListener('mouseup', stopRootResize);
+function onMouseUp() {
+  stopResize();
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
 }
 
-// Cleanup
 onUnmounted(() => {
-  stopRootResize();
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+});
+
+//#endregion
+
+
+//#region Computed Root-Area Accessors
+
+const leftRoot = computed(() => currentLayout.value.areas.left);
+const rightRoot = computed(() => currentLayout.value.areas.right);
+const topRoot = computed(() => currentLayout.value.areas.top);
+const bottomRoot = computed(() => currentLayout.value.areas.bottom);
+const centerRoot = computed(() => currentLayout.value.areas.center);
+
+//#endregion
+
+
+//#region Computed Styles for root areas
+
+/**
+ * Left area width
+ */
+const leftStyle = computed(() => {
+  if (!leftRoot.value) return {};
+  const px = leftRoot.value.sizePx ?? 200;
+  return { width: px + 'px' };
+});
+
+/**
+ * Right area width
+ */
+const rightStyle = computed(() => {
+  if (!rightRoot.value) return {};
+  const px = rightRoot.value.sizePx ?? 200;
+  return { width: px + 'px' };
+});
+
+/**
+ * Top area height
+ */
+const topStyle = computed(() => {
+  if (!topRoot.value) return {};
+  const px = topRoot.value.sizePx ?? 200;
+  return { height: px + 'px' };
+});
+
+/**
+ * Bottom area height
+ */
+const bottomStyle = computed(() => {
+  if (!bottomRoot.value) return {};
+  const px = bottomRoot.value.sizePx ?? 200;
+  return { height: px + 'px' };
 });
 
 //#endregion
 </script>
 
 <style scoped>
+/* 
+  1) The entire root is a horizontal flex: left -> center -> right 
+  2) The center (dock-middle) is a column flex: top -> center -> bottom
+*/
+
+/* Root container: left -> center -> right */
 .dock-root {
-  @apply bg-surface-800;
+  @apply w-full h-full flex min-h-0 bg-surface-800;
 }
 
-.dock-top, .dock-bottom {
-  @apply flex-none h-64 min-h-[4rem] max-h-[50%] overflow-hidden border-b border-surface-700 relative;
-}
-
+/* 
+  Left & Right areas:
+    - flex-none so they keep a fixed width from the store (sizePx)
+    - min-w ensures a minimal visible width, max-w ensures it won't exceed 40%
+    - Make them flex containers so that child panels can scroll if needed
+    - overflow-hidden ensures the bounding box is clipped; the panel inside
+      will manage scrolling with .panel-content-wrapper { overflow-auto }
+*/
 .dock-left, .dock-right {
-  @apply flex-none w-64 min-w-[4rem] max-w-[50%] overflow-hidden border-r border-surface-700 relative;
+  @apply flex-none min-w-[4rem] max-w-[40%] border-surface-700 relative;
+
+  /* fix: allow child to handle scrolling properly */
+  @apply h-full min-h-0 flex flex-col overflow-hidden;
 }
 
+/*
+  The middle container is a vertical stack: top -> center -> bottom
+  It occupies leftover horizontal space (flex-1).
+*/
+.dock-middle {
+  @apply flex flex-col flex-1 min-h-0 relative;
+}
+
+/* 
+  Top & Bottom:
+    - flex-none for a fixed height from the store (sizePx).
+    - min-h / max-h for safety
+    - again, define them as flex containers, min-h-0, overflow-hidden
+*/
+.dock-top, .dock-bottom {
+  @apply flex-none min-h-[4rem] max-h-[40%] border-surface-700 relative;
+
+  /* fix: child scrollers inside will now work */
+  @apply w-full min-h-0 flex flex-col overflow-hidden;
+}
+
+/*
+  The center area is a flex-1 so it fills leftover vertical space.
+  Also overflow-hidden as the bounding box. Inside .dock-panel we do actual scrolling.
+*/
 .dock-center {
-  @apply flex-1 overflow-hidden;
-  /* We mark .dock-center as relative so the overlay can be absolutely contained */
+  @apply flex-1 relative overflow-hidden min-h-0;
 }
 
+/* The general splitter style; dimension varies by orientation. */
 .root-splitter {
-  @apply relative z-10;
+  @apply relative z-10 bg-surface-600 hover:bg-primary-400 transition-colors;
 }
 
 .root-splitter:hover::after {

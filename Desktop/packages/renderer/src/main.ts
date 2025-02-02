@@ -4,7 +4,7 @@ import { registerPlugins } from '@/plugins/plugin-manager';
 import { Logger } from '@/services/logger.service';
 import { Filesystem } from './services/filesystem.service';
 import { FilePickerServiceKey, LoggerServiceKey, ViewModelStoreKey } from '@dhlib/models/injection-keys';
-import { useViewModelStore } from '@/stores/viewmodel-store';
+import { useViewModelStore } from '@dhlib/stores/viewModelStore';
 import App from '@/App.vue';
 
 import '@material-symbols/font-400/outlined.css';

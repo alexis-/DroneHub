@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- <router-view /> -->
-    <DockExample />
+    <!-- <DockExample /> -->
+    <TreeViewExample />
     
     <!-- <Toast position="bottom-center" /> -->
   </div>
@@ -11,6 +12,7 @@
 import { type Ref, ref, provide, onMounted} from 'vue';
 
 import DockExample from '@dhlib/components/ui/dock/examples/DockExample.vue'
+import TreeViewExample from '@dhlib/components/ui/treeview/examples/TreeViewExample.vue'
 import { AppError } from '@dhlib/models/app-errors';
 import type { IProject } from '@dhlib/models/core/interfaces/IProject';
 import { projectRepository } from '@/repositories/project.repository';

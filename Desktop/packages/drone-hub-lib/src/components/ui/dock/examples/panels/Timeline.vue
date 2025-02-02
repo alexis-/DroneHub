@@ -1,11 +1,13 @@
 <template>
-  <div class="p-4">
-    <div class="text-sm text-surface-300 mb-4">Timeline Panel</div>
-    <div class="space-y-2">
-      <div v-for="(event, index) in events" :key="index" class="flex items-center gap-2">
-        <span class="text-xs text-surface-400">{{ event.time }}</span>
-        <span class="material-symbols-outlined text-sm">{{ event.icon }}</span>
-        <span>{{ event.description }}</span>
+  <div class="h-full max-h-full overflow-auto">
+    <div class="p-4">
+      <div class="text-sm text-surface-300 mb-4">Timeline Panel</div>
+      <div class="space-y-2">
+        <div v-for="(event, index) in events" :key="index" class="flex items-center gap-2">
+          <span class="text-xs text-surface-400">{{ event.time }}</span>
+          <span class="material-symbols-outlined text-sm">{{ event.icon }}</span>
+          <span>{{ event.description }}</span>
+        </div>
       </div>
     </div>
   </div>

@@ -213,12 +213,34 @@ export function createDockAreaContainerSplit(params: {
 //#endregion
 
 
+//#region Toolbar
+
+/**
+ * Each icon toolbar item references a sub-tree (panel stack or container-split) 
+ * that we want to manage in the left toolbar.
+ */
+export interface IIconToolbarItem {
+  /**
+   * Unique identifier for the toolbar item, typically areaDef.id
+   */
+  id: string;
+
+  /**
+   * The area sub-tree that this toolbar item controls.
+   */
+  areaDef: DockAreaDef;
+}
+
+//#endregion
+
+
 //#region Root Areas & Layout
 
 /**
- * For each root area (left, right, top, bottom, center), we store both
- * the actual area definition (`areaDef`) and a pixel-based `sizePx`
- * for resizing in the outermost layout. (Center might ignore sizePx.)
+ * For each root area (left, right, top, bottom, center), we store:
+ *   - areaDef: The panel stack or container split
+ *   - sizePx: pixel-based size for top/left/right/bottom
+ *   - visible: whether it is currently shown in the root layout
  */
 export interface IRootArea {
   /**
@@ -236,6 +258,11 @@ export interface IRootArea {
    * (The center typically won't need it.)
    */
   sizePx: number;
+
+  /**
+   * Visibility toggle for this root area
+   */
+  visible: boolean;
 }
 
 /**
@@ -256,6 +283,7 @@ export interface DockLayout {
 
 /**
  * Creates a new DockLayout with optional name/props, always ensures a center area.
+ * By default, top/left/right/bottom are not visible. The center is always visible.
  */
 export function createDockLayout(params?: {
   name?: string;
@@ -271,7 +299,8 @@ export function createDockLayout(params?: {
       center: {
         absolutePosition: DockPosition.Center,
         areaDef: createDockAreaPanelStack({ absolutePosition: DockPosition.Center }),
-        sizePx: 0, // Not used for center, but we keep a default
+        sizePx: 0,
+        visible: true
       },
     },
   });
@@ -288,10 +317,16 @@ export function createDefaultLayout(): DockLayout {
 
 //#region Area & Panel Helpers
 
+/**
+ * Checks if a given area is a panel stack.
+ */
 export function isPanelStack(area: DockAreaDef | null | undefined): area is DockAreaPanelStack {
   return !!area && area.areaType === 'panelStack';
 }
 
+/**
+ * Checks if a given area is a container split.
+ */
 export function isContainerSplit(area: DockAreaDef | null | undefined): area is DockAreaContainerSplit {
   return !!area && area.areaType === 'containerSplit';
 }

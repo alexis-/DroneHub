@@ -5,10 +5,12 @@
     This ensures top and bottom are constrained between left and right.
   -->
   <div class="dock-root" ref="rootRef">
+    <!-- The left vertical toolbar (always present, pinned to left) -->
+    <DockVerticalToolbar class="shrink-0" />
 
     <!-- Left panel -->
     <div 
-      v-if="leftRoot"
+      v-if="leftRoot && leftRoot.visible"
       class="dock-left"
       :style="leftStyle"
       ref="leftRef"
@@ -21,7 +23,7 @@
 
     <!-- Splitter between left and center -->
     <div
-      v-if="leftRoot"
+      v-if="leftRoot && leftRoot.visible"
       class="root-splitter w-2 cursor-col-resize"
       @mousedown="onRootMousedown('vertical', leftRoot, $event)"
     />
@@ -31,7 +33,7 @@
 
       <!-- Top panel -->
       <div
-        v-if="topRoot"
+        v-if="topRoot && topRoot.visible"
         class="dock-top"
         :style="topStyle"
         ref="topRef"
@@ -44,7 +46,7 @@
 
       <!-- Splitter between top and center -->
       <div
-        v-if="topRoot"
+        v-if="topRoot && topRoot.visible"
         class="root-splitter h-2 cursor-row-resize"
         @mousedown="onRootMousedown('horizontal', topRoot, $event)"
       />
@@ -66,14 +68,14 @@
 
       <!-- Splitter between center and bottom -->
       <div
-        v-if="bottomRoot"
+        v-if="bottomRoot && bottomRoot.visible"
         class="root-splitter h-2 cursor-row-resize"
         @mousedown="onRootMousedown('horizontal', bottomRoot, $event)"
       />
 
       <!-- Bottom panel -->
       <div
-        v-if="bottomRoot"
+        v-if="bottomRoot && bottomRoot.visible"
         class="dock-bottom"
         :style="bottomStyle"
         ref="bottomRef"
@@ -87,14 +89,14 @@
 
     <!-- Splitter between center and right -->
     <div
-      v-if="rightRoot"
+      v-if="rightRoot && rightRoot.visible"
       class="root-splitter w-2 cursor-col-resize"
       @mousedown="onRootMousedown('vertical', rightRoot, $event)"
     />
 
     <!-- Right panel -->
     <div
-      v-if="rightRoot"
+      v-if="rightRoot && rightRoot.visible"
       class="dock-right"
       :style="rightStyle"
       ref="rightRef"

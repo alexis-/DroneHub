@@ -1,4 +1,5 @@
-import { SplitDirection, DockPosition, PanelType } from "./models/DockTypes"
+import type { DockAreaDef, Panel } from "./models/DockModels";
+import { SplitDirection, DockPosition, PanelType, DragSourceType, type IDragState } from "./models/DockTypes"
 
 export function validatePosition(direction: string): boolean {
   switch (direction) {
@@ -70,4 +71,45 @@ export function getPanelType(position: DockPosition): PanelType {
     default:
       throw new Error('Invalid position');
   }
+}
+
+export function getPanelTypeFromDragState(dragState: IDragState): PanelType {
+  let panel: Panel;
+
+  // If we are dragging a panel, verify that panel
+  if (dragState.dragSourceType === DragSourceType.Panel) {
+    panel = dragState.dragSource as Panel;
+  }
+
+  // If we are dragging an area, use the first panel in the hierarchy to verify compatibility
+  else if (dragState.dragSourceType === DragSourceType.Area) {
+    const area = dragState.dragSource as DockAreaDef;
+    panel = getFirstPanelInHierarchy(area);
+  }
+
+  if (!panel) {
+    throw new Error('Invalid drag state');
+  }
+  
+  return panel.panelType;
+}
+
+export function isPanel(object: any) {
+  return object.panelType === PanelType.Content
+    || object.panelType === PanelType.Toolbar;
+}
+
+export function isArea(object: any) {
+  return object.areaType === 'panelStack'
+    || object.areaType === 'containerSplit';
+}
+
+export function getDragSourceType(dragSource: Panel | DockAreaDef): DragSourceType {
+  if (isPanel(dragSource))
+    return DragSourceType.Panel;
+
+  if (isArea(dragSource))
+    return DragSourceType.Area;
+
+  throw new Error('Invalid drag source type');
 }

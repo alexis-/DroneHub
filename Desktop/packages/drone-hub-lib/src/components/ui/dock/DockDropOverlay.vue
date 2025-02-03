@@ -69,8 +69,9 @@
 
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { DockPosition, PanelType, SplitDirection } from './models/DockTypes'
+import { DockPosition, DragSourceType, DropTargetType, PanelType, SplitDirection } from './models/DockTypes'
 import { useDockStore } from '#stores/dockStore'
+import { getPanelTypeFromDragState } from './DockUtils'
 
 const store = useDockStore()
 const { currentLayout, dragState } = storeToRefs(store)
@@ -88,12 +89,15 @@ const props = defineProps<{
  * We only allow root drop zones for 'toolbar' type panels,
  * and only on empty root positions (i.e. no existing area).
  */
-const shouldShowRootDropZones = computed(() => 
-  dragState.value.panel?.panelType === PanelType.Toolbar
-)
+const shouldShowRootDropZones = computed(() => {
+  const panelType = getPanelTypeFromDragState(dragState.value);
+
+  return panelType === PanelType.Toolbar;
+})
 
 const availableRootPositions = computed(() => {
   const allRootPositions = [DockPosition.Left, DockPosition.Right, DockPosition.Top, DockPosition.Bottom];
+
   return allRootPositions.filter(position => {
     return !currentLayout.value.areas[position];
   })
@@ -110,9 +114,7 @@ const availableRootPositions = computed(() => {
  * 2) The dragged panel's type matches the area type (content vs. toolbar).
  */
 const shouldShowZoneForDraggedPanel = computed(() => {
-  const draggedPanelType = dragState.value.panel?.panelType;
-  const dragAreaId = dragState.value.dropTarget?.areaId;
-  const isSameArea = true; //props.areaId === dragAreaId;
+  const draggedPanelType = getPanelTypeFromDragState(dragState.value);
 
   const isCenterArea   = (props.absolutePosition === DockPosition.Center);
   const isToolbarArea  = !isCenterArea;  // left, right, top, bottom
@@ -120,9 +122,7 @@ const shouldShowZoneForDraggedPanel = computed(() => {
   const isDraggingToolbar = (draggedPanelType === PanelType.Toolbar);
 
   // Content panels only drop in center, toolbars only in side areas:
-  const areaMatchesType = (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
-
-  return isSameArea && areaMatchesType;
+  return (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
 });
 
 /**
@@ -169,10 +169,15 @@ function getZoneIcon(position: DockPosition): string {
 
 function isActiveTarget(areaId: string | null, absPos: DockPosition, relPos: DockPosition): boolean {
   const target = store.dragState.dropTarget;
-  if (!target) return false;
+
+  if (!target || target.targetType !== DropTargetType.Area) {
+    return false;
+  }
+
   const sameArea   = (areaId === null) || (target.areaId === areaId);
   const sameAbsPos = (target.absolutePosition === absPos);
   const sameRelPos = (target.relativePosition === relPos);
+
   return (sameArea && sameAbsPos && sameRelPos);
 }
 
@@ -182,7 +187,12 @@ function isActiveTarget(areaId: string | null, absPos: DockPosition, relPos: Doc
 //#region Drag & Drop
 
 function handleDragEnter(areaId: string | null, absPos: DockPosition, relPos: DockPosition) {
-  store.updateDropTarget({ areaId, absolutePosition: absPos, relativePosition: relPos });
+  store.updateDropTarget({
+    targetType: DropTargetType.Area,
+    areaId: areaId,
+    absolutePosition: absPos,
+    relativePosition: relPos
+  });
 }
 
 function handleDragLeave(event: DragEvent) {
@@ -198,9 +208,11 @@ function handleDragLeave(event: DragEvent) {
 
 function handleDrop() {
   const target = store.dragState.dropTarget;
+
   if (target) {
     store.handleDrop(target);
   }
+
   store.stopDragging();
 }
 

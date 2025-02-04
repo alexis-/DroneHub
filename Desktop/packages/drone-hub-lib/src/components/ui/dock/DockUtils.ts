@@ -73,26 +73,21 @@ export function getPanelType(position: DockPosition): PanelType {
   }
 }
 
-export function getPanelTypeFromDragState(dragState: IDragState): PanelType {
-  let panel: Panel;
+export function isAreaChildrenOf(area: DockAreaDef, parent: DockAreaDef): boolean {
+  if (area.parent === null)
+    return false;
 
-  // If we are dragging a panel, verify that panel
-  if (dragState.dragSourceType === DragSourceType.Panel) {
-    panel = dragState.dragSource as Panel;
+  else if (area.parent.areaType === 'containerSplit') {
+    return area.parent.leftOrTop === parent
+      || area.parent.rightOrBottom === parent
+      || isAreaChildrenOf(area.parent, parent);
   }
 
-  // If we are dragging an area, use the first panel in the hierarchy to verify compatibility
-  else if (dragState.dragSourceType === DragSourceType.Area) {
-    const area = dragState.dragSource as DockAreaDef;
-    panel = getFirstPanelInHierarchy(area);
+  else {
+    throw new Error('Invalid area');
   }
-
-  if (!panel) {
-    throw new Error('Invalid drag state');
-  }
-  
-  return panel.panelType;
 }
+
 
 export function isPanel(object: any) {
   return object.panelType === PanelType.Content

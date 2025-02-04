@@ -1,7 +1,7 @@
 <template>
   <!-- This overlay is shown if a panel is being dragged -->
   <div 
-    v-if="store.dragState.isDragging"
+    v-if="dockStore.dragState.isDragging"
     class="dock-drop-overlay"
     @dragover.prevent
     @drop.prevent="handleDrop"
@@ -49,7 +49,7 @@
 
       <!-- Stack zone (center) -->
       <div 
-        v-if="shouldShowZoneForDraggedPanel"
+        v-if="shouldShowZoneForDraggedPanel && !isSourceArea"
         class="drop-zone stack-zone"
         :class="{ 
           'active': isActiveTarget(props.areaId, props.absolutePosition, DockPosition.Center)
@@ -71,10 +71,9 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DockPosition, DragSourceType, DropTargetType, PanelType, SplitDirection } from './models/DockTypes'
 import { useDockStore } from '#stores/dockStore'
-import { getPanelTypeFromDragState } from './DockUtils'
 
-const store = useDockStore()
-const { currentLayout, dragState } = storeToRefs(store)
+const dockStore = useDockStore()
+const { currentLayout, dragState } = storeToRefs(dockStore)
 
 const props = defineProps<{
   absolutePosition?: DockPosition  // undefined when root === true
@@ -90,7 +89,7 @@ const props = defineProps<{
  * and only on empty root positions (i.e. no existing area).
  */
 const shouldShowRootDropZones = computed(() => {
-  const panelType = getPanelTypeFromDragState(dragState.value);
+  const panelType = dockStore.getPanelTypeFromDragState(dragState.value);
 
   return panelType === PanelType.Toolbar;
 })
@@ -114,7 +113,7 @@ const availableRootPositions = computed(() => {
  * 2) The dragged panel's type matches the area type (content vs. toolbar).
  */
 const shouldShowZoneForDraggedPanel = computed(() => {
-  const draggedPanelType = getPanelTypeFromDragState(dragState.value);
+  const draggedPanelType = dockStore.getPanelTypeFromDragState(dragState.value);
 
   const isCenterArea   = (props.absolutePosition === DockPosition.Center);
   const isToolbarArea  = !isCenterArea;  // left, right, top, bottom
@@ -124,6 +123,10 @@ const shouldShowZoneForDraggedPanel = computed(() => {
   // Content panels only drop in center, toolbars only in side areas:
   return (isCenterArea && isDraggingContent) || (isToolbarArea && isDraggingToolbar);
 });
+
+const isSourceArea = computed(() => {
+  return dragState.value.dragSourceType === DragSourceType.Area;
+})
 
 /**
  * Provide a simple structure for possible split zones (left, right, top, bottom)
@@ -168,7 +171,7 @@ function getZoneIcon(position: DockPosition): string {
 }
 
 function isActiveTarget(areaId: string | null, absPos: DockPosition, relPos: DockPosition): boolean {
-  const target = store.dragState.dropTarget;
+  const target = dockStore.dragState.dropTarget;
 
   if (!target || target.targetType !== DropTargetType.Area) {
     return false;
@@ -187,7 +190,7 @@ function isActiveTarget(areaId: string | null, absPos: DockPosition, relPos: Doc
 //#region Drag & Drop
 
 function handleDragEnter(areaId: string | null, absPos: DockPosition, relPos: DockPosition) {
-  store.updateDropTarget({
+  dockStore.updateDropTarget({
     targetType: DropTargetType.Area,
     areaId: areaId,
     absolutePosition: absPos,
@@ -202,18 +205,18 @@ function handleDragLeave(event: DragEvent) {
   // If the mouse leaves the overlay or a drop-zone, and there's no related target inside it,
   // clear the drop target:
   if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
-    store.updateDropTarget(null);
+    dockStore.updateDropTarget(null);
   }
 }
 
 function handleDrop() {
-  const target = store.dragState.dropTarget;
+  const target = dockStore.dragState.dropTarget;
 
   if (target) {
-    store.handleDrop(target);
+    dockStore.handleDrop(target);
   }
 
-  store.stopDragging();
+  dockStore.stopDragging();
 }
 
 //#endregion

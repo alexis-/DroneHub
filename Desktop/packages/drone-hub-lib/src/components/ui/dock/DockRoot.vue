@@ -114,6 +114,7 @@
 import { onUnmounted, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDockStore } from '#stores/dockStore';
+import DockVerticalToolbar from './DockVerticalToolbar.vue';
 import DockDropOverlay from './DockDropOverlay.vue';
 import { useRootResizing } from './DockResizing';
 

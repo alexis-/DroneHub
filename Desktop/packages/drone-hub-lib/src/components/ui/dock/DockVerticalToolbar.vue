@@ -5,7 +5,8 @@
   -->
   <div 
     class="dock-vertical-toolbar flex flex-col h-full bg-surface-900 border-r border-surface-700 select-none relative"
-    @dragover.prevent
+    @dragover="onToolbarDragOver"
+    @drop.prevent="onContainerDrop"
   >
     <!-- 
       We render each toolbar item in the order found in computedToolbarItems.
@@ -191,6 +192,9 @@ function onDragEnter(e: DragEvent, targetIndex: number) {
  * @param targetIndex The index where the item was dropped.
  */
 function onDrop(e: DragEvent, targetIndex: number) {
+  // Prevent the drop event from bubbling up to the container drop handler
+  e.stopPropagation();
+
   if (!dragState.value.isDragging) {
     return;
   }
@@ -202,6 +206,71 @@ function onDrop(e: DragEvent, targetIndex: number) {
 }
 
 /**
+ * Called when the drop occurs on the toolbar container (outside any icon).
+ * Here we compute a default drop index (by examining the current mouse position)
+ * and then delegate the drop handling to the dock store.
+ * @param e Drag event.
+ */
+ function onContainerDrop(e: DragEvent): void {
+  if (!dragState.value.isDragging) {
+    return;
+  }
+  // If the drag ended over the container (not over an icon), update the drop target
+  // and then handle the drop using that target.
+  const dropIndex = getDropIndexFromEvent(e);
+  dockStore.handleDrop({
+    targetType: DropTargetType.IconToolbar,
+    toolbarIndex: dropIndex,
+  });
+}
+
+/**
+ * onToolbarDragOver: Handles dragover events on the toolbar container (outside the icon items).
+ * It computes the drop index based on the mouse Y coordinate relative to the icons
+ * and then updates the dock store's drop target.
+ * @param e Drag event.
+ */
+function onToolbarDragOver(e: DragEvent): void {
+  e.preventDefault();
+  const dropIndex = getDropIndexFromEvent(e);
+  dockStore.updateDropTarget({
+    targetType: DropTargetType.IconToolbar,
+    toolbarIndex: dropIndex,
+  });
+}
+
+/**
+ * Helper function to compute the toolbar drop index based on the drag event.
+ * It inspects the toolbar container’s child elements (toolbar items) and determines
+ * between which items the mouse pointer is hovering.
+ * @param e Drag event.
+ * @returns The computed toolbar index for the drop target.
+ */
+function getDropIndexFromEvent(e: DragEvent): number {
+  // Get the container element from the event
+  const container = e.currentTarget as HTMLElement;
+  // Query all toolbar items
+  const toolbarItemElements = container.querySelectorAll('.toolbar-item');
+  let dropIndex = 0;
+  let found = false;
+  toolbarItemElements.forEach((item, index) => {
+    const rect = item.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    // If the pointer is above the midpoint of the first item that qualifies,
+    // then that index is our drop target.
+    if (!found && e.clientY < midY) {
+      dropIndex = index;
+      found = true;
+    }
+  });
+  // If none qualify, then drop at the end (append)
+  if (!found) {
+    dropIndex = toolbarItemElements.length;
+  }
+  return dropIndex;
+}
+
+/**
  * Called when the drag operation ends (either normally or by cancellation).
  * Delegates the finalization to the dock store.
  * @param e Drag event.
@@ -209,6 +278,11 @@ function onDrop(e: DragEvent, targetIndex: number) {
 function onDragEnd(e: DragEvent) {
   dockStore.stopDragging();
 }
+
+//#endregion
+
+
+//#region Drop Indicator Helpers
 
 /**
  * Checks whether the current drop target (if any) indicates a drop above the item at the given index.

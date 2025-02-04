@@ -1,8 +1,8 @@
 <template>
   <div>
     <!-- <router-view /> -->
-    <!-- <DockExample /> -->
-    <TreeViewExample />
+    <DockExample />
+    <!-- <TreeViewExample /> -->
     
     <!-- <Toast position="bottom-center" /> -->
   </div>

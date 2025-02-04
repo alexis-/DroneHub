@@ -37,7 +37,7 @@ import {
   getSplitDirection,
   getPanelType,
   getDragSourceType,
-  getPanelTypeFromDragState
+  isAreaChildrenOf,
 } from '#components/ui/dock/DockUtils';
 
 import { LoggerServiceKey } from '#models/injection-keys';
@@ -174,7 +174,7 @@ export const useDockStore = defineStore('dock', () => {
     if (isPanelStack(area)) {
       // If there's at least one panel in the stack, return the first
       if (area.panelStack.length > 0) {
-        return area.panelStack[0];
+        return area.activePanel || area.panelStack[0];
       }
       return null;
     }
@@ -187,6 +187,28 @@ export const useDockStore = defineStore('dock', () => {
     }
 
     return null;
+  }
+  
+
+  function getPanelTypeFromDragState(dragState: IDragState): PanelType {
+    let panel: Panel;
+
+    // If we are dragging a panel, verify that panel
+    if (dragState.dragSourceType === DragSourceType.Panel) {
+      panel = dragState.dragSource as Panel;
+    }
+
+    // If we are dragging an area, use the first panel in the hierarchy to verify compatibility
+    else if (dragState.dragSourceType === DragSourceType.Area) {
+      const area = dragState.dragSource as DockAreaDef;
+      panel = getFirstPanelInHierarchy(area);
+    }
+
+    if (!panel) {
+      throw new Error('Invalid drag state');
+    }
+    
+    return panel.panelType;
   }
 
   /**
@@ -210,36 +232,44 @@ export const useDockStore = defineStore('dock', () => {
 
   /**
    * Ensures a valid toolbar area is returned, creating one if necessary.
+   * If no left root area exists, a new panel-stack is created for DockPosition.Left and added to the left icon toolbar.
    * @param area The area to validate, or undefined
    * @returns A valid toolbar area
    */
   function getSafeToolbarArea(area?: DockAreaPanelStack): DockAreaPanelStack {
+    // Validate that the given area (if provided) is a toolbar area
     if (area && getPanelType(area.absolutePosition) !== PanelType.Toolbar) {
       logger.error(CONTEXT, 'Invalid area type', area);
       throw new AppError(CONTEXT, 'Invalid area type');
     }
-
-    // If area is not provided, try to put it on the left area’s sub-tree
+  
+    // If area is not provided, try to locate an existing left area in the sub-tree
     if (!area) {
       let leftRoot = currentLayout.value.areas.left?.areaDef;
-
+  
+      // Look for the first panel-stack following the DockPosition.Top of the left root
       area = findFirstPanelStackFollowingDirection(DockPosition.Top, leftRoot);
-
-      // If we don’t have a left root yet, create it
+  
+      // If no left area exists yet, create one
       if (!area) {
         area = createDockAreaPanelStack({ absolutePosition: DockPosition.Left });
-
+  
+        // Update the left root in the layout with the newly created area
         currentLayout.value.areas.left = {
           absolutePosition: DockPosition.Left,
           areaDef: area,
           sizePx: 200,
           visible: true
         };
-        
+  
+        // Save the new area in the area map for lookup
         areaMap.set(area.id, area);
+  
+        // Update the left icon toolbar to include this newly created area
+        addIconToolbarItem(area);
       }
     }
-
+  
     return area;
   }
 
@@ -264,6 +294,16 @@ export const useDockStore = defineStore('dock', () => {
 
     try {
       area = _resolveAreaInternal(area, panel);
+
+      if (area.panelStack.findIndex(p => p.id === panel.id) !== -1) {
+        if (relativePosition === DockPosition.Center) {
+          return;
+        }
+
+        if (area.panelStack.length === 1) {
+          return;
+        }
+      }
       
       // Remove and re-add panel to new area
       removePanel(panel);
@@ -348,6 +388,11 @@ export const useDockStore = defineStore('dock', () => {
         sizePx: 200,
         visible: true
       };
+  
+      if (absolutePosition === DockPosition.Left) {
+        // Update the left icon toolbar to include this newly created area
+        addIconToolbarItem(newArea);
+      }
 
       return newArea;
     }
@@ -464,6 +509,24 @@ export const useDockStore = defineStore('dock', () => {
         throw new AppError(CONTEXT, 'Invalid parent type');
       }
 
+  
+      // Update the left icon toolbar item if the split occurred in the left root area.
+      // When dropping on a left toolbar panel, targetStack.absolutePosition is 'left'.
+      // We need the icon toolbar to reference the new container split (newContainer),
+      // so we update the matching item in leftToolbarItems.
+      if (targetStack.absolutePosition === DockPosition.Left) {
+        const toolbarIndex = leftToolbarItems.value.findIndex(
+          (item) => item.areaDef.id === targetStack.id
+        );
+        if (toolbarIndex >= 0) {
+          // Replace the old item (referencing the panel stack) with one referencing the new container split
+          leftToolbarItems.value[toolbarIndex] = {
+            id: newContainer.id,
+            areaDef: newContainer,
+          };
+        }
+      }
+
       return newPanelStack;
     }
 
@@ -524,8 +587,13 @@ export const useDockStore = defineStore('dock', () => {
     
     // If no parent, this is a root area in the layout - remove it
     if (isRootArea(area)) {
+      // If left area, remove from the icon toolbar
+      if (area.absolutePosition === DockPosition.Left) {
+        removeIconToolbarItem(area.id, true, true);
+      }
+
       // Don't collapse the center area - it should always exist
-      if (area.absolutePosition !== DockPosition.Center) {
+      else if (area.absolutePosition !== DockPosition.Center) {
         currentLayout.value.areas[area.absolutePosition] = undefined;
         areaMap.delete(area.id);
       }
@@ -564,9 +632,25 @@ export const useDockStore = defineStore('dock', () => {
         throw new AppError(CONTEXT, 'Invalid dock structure');
       }
       
+      // Replace the parent's areaDef (the container split) with the remaining sibling.
       rootObj.areaDef = siblingArea;
       rootObj.visible = true;
-      
+    
+      // If the left root area is being collapsed, update the left icon toolbar
+      if (parent.absolutePosition === DockPosition.Left) {
+        const toolbarIndex = leftToolbarItems.value.findIndex(
+          (item) => item.areaDef.id === parent.id
+        );
+
+        if (toolbarIndex >= 0) {
+          // Replace the toolbar item to now reference the sibling area.
+          leftToolbarItems.value[toolbarIndex] = {
+            id: siblingArea.id,
+            areaDef: siblingArea,
+          };
+        }
+      }
+
       return;
     }
 
@@ -586,7 +670,7 @@ export const useDockStore = defineStore('dock', () => {
     }
   }
 
-  function makeAreaOrphan(area: DockAreaDef, deleteFromMap: boolean = true) {
+  function makeAreaOrphan(area: DockAreaDef, deleteFromMap: boolean) {
     if (isRootArea(area)) {
       if (area.absolutePosition !== DockPosition.Center) {
         currentLayout.value.areas[area.absolutePosition] = undefined;
@@ -615,7 +699,7 @@ export const useDockStore = defineStore('dock', () => {
       collapseAreaIfEmpty(parent);
     }
     
-    else {
+    else if (parent) {
       logger.error(CONTEXT, 'Invalid parent type', parent);
       throw new AppError(CONTEXT, 'Invalid parent type');
     }
@@ -627,6 +711,14 @@ export const useDockStore = defineStore('dock', () => {
     }
   }
 
+  function updateAbsolutePositionRecursively(area: DockAreaDef, absolutePosition: DockPosition) {
+    area.absolutePosition = absolutePosition;
+
+    if (area.areaType === 'containerSplit') {
+      updateAbsolutePositionRecursively(area.leftOrTop, absolutePosition);
+      updateAbsolutePositionRecursively(area.rightOrBottom, absolutePosition);
+    }
+  }
 
   /**
    * Moves an entire area sub-tree (container split or panel stack) to a new location.
@@ -641,17 +733,21 @@ export const useDockStore = defineStore('dock', () => {
    *       b. Else, create a new container split that “merges” the existing root area with the
    *          dropped area, assigning children based on the target.relativePosition.
    *
-   * @param area The area sub-tree being moved.
+   * @param srcArea The area sub-tree being moved.
    * @param target The drop target details.
    * @throws AppError if the drop target is invalid.
    */
-  function moveAreaHierarchy(area: DockAreaDef, target: IDropTarget): void {
-    // Detach the area from its current parent, if any.
-    makeAreaOrphan(area, false);
+  function moveAreaHierarchy(srcArea: DockAreaDef, target: IDropTarget): boolean {
     
     // If dropping into the toolbar, leave the area detached.
     if (target.targetType === DropTargetType.IconToolbar) {
-      return;
+      srcArea.absolutePosition = DockPosition.Left;
+      srcArea.relativePosition = DockPosition.Center;
+      
+      // Detach the area from its current parent, if any.
+      makeAreaOrphan(srcArea, false);
+
+      return true;
     }
     
     // Dropping into a layout area.
@@ -670,19 +766,47 @@ export const useDockStore = defineStore('dock', () => {
     let rootObj = currentLayout.value.areas[absolutePosition];
 
     if (!rootObj) {
+      // Detach the area from its current parent, if any.
+      makeAreaOrphan(srcArea, false);
+
       // No root area exists: set the moved area as the new root area.
       currentLayout.value.areas[absolutePosition] = {
         absolutePosition: absolutePosition,
-        areaDef: area,
+        areaDef: srcArea,
         sizePx: 200,
         visible: true
       };
+      
+      srcArea.relativePosition = DockPosition.Center;
+    
+      updateAbsolutePositionRecursively(srcArea, absolutePosition);
 
-      return;
+      return true;
     }
 
-    // A root area exists. Create a new container split to merge the existing area and the moved area.
+    // Check if target area is valid.
     const targetArea = areaMap.get(areaId);
+    
+    if (srcArea.id === targetArea.id) {
+      if (relativePosition === DockPosition.Center) {
+        return false;
+      }
+
+      else if (isPanelStack(targetArea) && targetArea.panelStack.length === 1) {
+        return false;
+      }
+    }
+
+    else if (isAreaChildrenOf(targetArea, srcArea)) {
+      return false;
+    }
+    
+    // Detach the area from its current parent, if any.
+    makeAreaOrphan(srcArea, false);
+    
+    updateAbsolutePositionRecursively(srcArea, absolutePosition);
+    
+    // A root area exists. Create a new container split to merge the existing area and the moved area.
     const splitDir = getSplitDirection(target.relativePosition!);
 
     const newContainer = createDockAreaContainerSplit({
@@ -696,17 +820,17 @@ export const useDockStore = defineStore('dock', () => {
     
     // Arrange the children based on the target.relativePosition.
     if (relativePosition === DockPosition.Left || relativePosition === DockPosition.Top) {
-      newContainer.leftOrTop = area;
+      newContainer.leftOrTop = srcArea;
       newContainer.rightOrBottom = targetArea;
     }
 
     else {
       newContainer.leftOrTop = targetArea;
-      newContainer.rightOrBottom = area;
+      newContainer.rightOrBottom = srcArea;
     }
 
-    area.parent = newContainer;
-    area.relativePosition = target.relativePosition;
+    srcArea.parent = newContainer;
+    srcArea.relativePosition = target.relativePosition;
 
     targetArea.parent = newContainer;
     targetArea.relativePosition = getOppositePosition(target.relativePosition);
@@ -715,6 +839,19 @@ export const useDockStore = defineStore('dock', () => {
     if (!newContainer.parent) {
       currentLayout.value.areas[absolutePosition].areaDef = newContainer;
       currentLayout.value.areas[absolutePosition].visible = true;
+      
+      if (absolutePosition === DockPosition.Left) {
+        const toolbarIndex = leftToolbarItems.value.findIndex(
+          (item) => item.areaDef.id === targetArea.id
+        );
+        if (toolbarIndex >= 0) {
+          // Replace the old item (referencing the panel stack) with one referencing the new container split
+          leftToolbarItems.value[toolbarIndex] = {
+            id: newContainer.id,
+            areaDef: newContainer,
+          };
+        }
+      }
     }
 
     else {
@@ -726,6 +863,8 @@ export const useDockStore = defineStore('dock', () => {
         grandParent.rightOrBottom = newContainer;
       }
     }
+
+    return true;
   }
 
   //#endregion
@@ -758,24 +897,24 @@ export const useDockStore = defineStore('dock', () => {
   /**
    * Removes an item from the icon toolbar by area ID.
    */
-  function removeIconToolbarItem(areaId: string, shouldDelete: boolean) {
-    const idx = leftToolbarItems.value.findIndex(i => i.id === areaId);
-    
+  function removeIconToolbarItem(areaId: string, shouldDelete: boolean, shouldOrphan: boolean) {
+    const idx = leftToolbarItems.value.findIndex(i => i.areaDef.id === areaId);
+
     if (idx < 0) {
       logger.error(CONTEXT, 'Could not find icon toolbar item for removal', areaId);
       throw new AppError(CONTEXT, 'Could not find icon toolbar item for removal', null, areaId);
     }
 
-    const item = leftToolbarItems.value.splice(idx, 1);
-    const currentArea = currentLayout.value.areas.left.areaDef;
-    
+    const item = leftToolbarItems.value.splice(idx, 1)[0];
+    const currentArea = currentLayout.value.areas.left?.areaDef;
+
     // Detach the area from its current parent, if any.
-    // @ts-ignore
-    makeAreaOrphan(item.areaDef, shouldDelete);
+    if (shouldOrphan && item.areaDef.absolutePosition === DockPosition.Left) {
+      makeAreaOrphan(item.areaDef, shouldDelete);
+    }
 
     // The removed item was not active, so we don't need to do anything else
-    // @ts-ignore
-    if (item.areaDef.id !== currentArea.id) {
+    if (currentArea && item.areaDef.id !== currentArea.id) {
       return;
     }
 
@@ -796,11 +935,18 @@ export const useDockStore = defineStore('dock', () => {
    */
   function reorderIconToolbarItems(fromIndex: number, toIndex: number) {
     if (fromIndex < 0 || toIndex < 0 ||
-        fromIndex >= leftToolbarItems.value.length || toIndex >= leftToolbarItems.value.length) {
+        fromIndex >= leftToolbarItems.value.length || toIndex > leftToolbarItems.value.length) {
       return;
     }
     const item = leftToolbarItems.value.splice(fromIndex, 1)[0];
-    leftToolbarItems.value.splice(toIndex, 0, item);
+
+    if (toIndex > leftToolbarItems.value.length) {
+      leftToolbarItems.value.push(item);
+    }
+    
+    else {
+      leftToolbarItems.value.splice(toIndex, 0, item);
+    }
   }
 
   function toggleIconToolbarItem(itemId: string) {
@@ -845,7 +991,7 @@ export const useDockStore = defineStore('dock', () => {
    */
   function startDragging(event: DragEvent, dragSource: Panel | DockAreaDef) {
     // Ensure the event has a dataTransfer object
-    if (!event.dataTransfer) {
+    if (!event.dataTransfer || event.target instanceof HTMLElement === false) {
       logger.warn(CONTEXT, 'Event has no data transfer', event);
       return;
     }
@@ -998,43 +1144,42 @@ export const useDockStore = defineStore('dock', () => {
     const areaOrPosition = areaId
       ? areaMap.get(areaId)
       : absolutePosition;
-    
-    if (typeof areaOrPosition !== 'string' && !isPanelStack(areaOrPosition)) {
-      logger.error(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
-      throw new AppError(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
-    }
-
 
     // If dragging an area, remove it from the toolbar and then move it.
     // Currently we can only move entire area sub-trees from the toolbar.
     if (dragState.value.dragSourceType === DragSourceType.Area) {
-      const area = dragState.value.dragSource as DockAreaDef;
-      const fromIndex = leftToolbarItems.value.findIndex(i => i.areaDef.id === area.id);
+      const srcArea = dragState.value.dragSource as DockAreaDef;
+      const fromIndex = leftToolbarItems.value.findIndex(i => i.areaDef.id === srcArea.id);
+      
+      if (moveAreaHierarchy(srcArea, target) == false) {
+        return;
+      }
 
       // This shouldn't happen.
-      if (fromIndex <= 0) {
-        logger.warn(CONTEXT, 'Could not find icon toolbar item for dragged area', null, areaOrPosition, target);
+      if (fromIndex < 0) {
+        logger.warn(CONTEXT, 'Could not find icon toolbar item for dragged area', null, srcArea, target);
       }
 
       // remove from local toolbar array
       else {
-        removeIconToolbarItem(leftToolbarItems.value[fromIndex].id, false);
+        removeIconToolbarItem(leftToolbarItems.value[fromIndex].id, false, false);
       }
-
-      moveAreaHierarchy(area, target);
     }
 
   // If dragging a panel, move or add the panel to the target area.
     else if (dragState.value.dragSourceType === DragSourceType.Panel) {
       const panel = dragState.value.dragSource as Panel;
+      
+      if (typeof areaOrPosition !== 'string' && !isPanelStack(areaOrPosition)) {
+        logger.error(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
+        throw new AppError(CONTEXT, 'Invalid drop target', null, areaOrPosition, target);
+      }
 
       if (panel.parent) {
-        //@ts-ignore - Typescript fails to evaluate areaOrPosition's true type
         movePanel(panel, relativePosition, areaOrPosition);
       }
 
       else {
-        //@ts-ignore
         addPanel(panel, relativePosition, areaOrPosition);
       }
     }
@@ -1063,15 +1208,16 @@ export const useDockStore = defineStore('dock', () => {
       return { isValid: false, message: 'Drag source type does not match actual type' };
     }
 
-    if (dragState.value.dropTarget.targetType === DropTargetType.IconToolbar) {
-      if (!dragState.value.dropTarget.toolbarIndex) {
+    if (target.targetType === DropTargetType.IconToolbar) {
+      // Values of 0 are valid, undefined and null are not
+      if (target.toolbarIndex === undefined || target.toolbarIndex === null) {
         return { isValid: false, message: 'No target toolbar item index provided' };
       }
       
       return { isValid: true };
     }
 
-    else if (dragState.value.dropTarget.targetType === DropTargetType.Area) {
+    else if (target.targetType === DropTargetType.Area) {
       // If areaId is not set but that root area already exists => invalid
       if (!target.areaId && currentLayout.value.areas[target.absolutePosition]) {
         return { isValid: false, message: 'No target area' };
@@ -1162,6 +1308,7 @@ export const useDockStore = defineStore('dock', () => {
 
     // Utility
     findFirstPanelStackFollowingDirection,
-    getFirstPanelInHierarchy
+    getFirstPanelInHierarchy,
+    getPanelTypeFromDragState
   };
 });

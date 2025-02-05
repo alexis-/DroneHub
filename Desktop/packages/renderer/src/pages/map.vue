@@ -1,6 +1,5 @@
 <template>
   <div class="map-page">
-    <!-- <PanelContainer /> -->
 
     <!-- <OpenLayersMap class="map-view" :mapId="MapIds.Main" /> -->
     <CesiumMap class="map-view" :mapId="MapIds.Main" />
@@ -18,8 +17,6 @@
 import { onMounted } from 'vue';
 // import OpenLayersMap from '@dhlib/components/open-layers/OlMap.vue';
 import CesiumMap from '@dhlib/components/cesium/CesiumMap.vue';
-// import PanelContainer from '@/components/panels/PanelContainer.vue';
-// import { Panels } from '@/components/panels/panels-index';
 // import { useToolStore } from '@/stores/tool.store';
 // import { usePanelStore } from '@/stores/panel.store';
 import { Logger } from '@/services/logger.service';
@@ -50,16 +47,6 @@ onMounted(async () => {
 </script>
 
 <style>
-.map-page {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-}
-
-.map-view {
-  width: 100%;
-  height: 100%;
-}
 
 .tool-component {
   position: relative;

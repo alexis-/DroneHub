@@ -41,7 +41,7 @@ import {
 } from '#components/ui/dock/DockUtils';
 
 import { LoggerServiceKey } from '#models/injection-keys';
-import { getCircularReplacer } from '#utils/json-utils';
+import { getSimpleCircularReplacer } from '#utils/json-serialization';
 import { AppError } from '#models/app-errors';
 
 const CONTEXT = 'dockStore';
@@ -373,8 +373,7 @@ export const useDockStore = defineStore('dock', () => {
       }
 
       if (currentLayout.value.areas[absolutePosition]) {
-        logger.error(CONTEXT, 'Root area already exists', absolutePosition);
-        throw new AppError(CONTEXT, 'Root area already exists');
+        return findFirstPanelStackFollowingDirection(absolutePosition, currentLayout.value.areas[absolutePosition].areaDef);
       }
 
       // Create a new panel stack as root
@@ -1004,7 +1003,7 @@ export const useDockStore = defineStore('dock', () => {
     };
     
     // Set drag data for browsers that need it
-    event.dataTransfer.setData('application/json', JSON.stringify(dragPayload, getCircularReplacer()));
+    event.dataTransfer.setData('application/json', JSON.stringify(dragPayload, getSimpleCircularReplacer()));
     event.dataTransfer.effectAllowed = 'move';
     
     // Create a drag image to improve the drag visual feedback

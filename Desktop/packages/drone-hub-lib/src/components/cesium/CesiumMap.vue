@@ -3,11 +3,6 @@
     <div ref="_mapElement" class="map-element"></div>
 
     <MapControls :map-controls="_vm" />
-    
-    <Button 
-      size="lg"
-      iconSize="3xl"
-      @click="openAndDisplayWpmlFile()">Show File Picker</Button>
   </div>
 </template>
 

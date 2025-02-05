@@ -1,17 +1,26 @@
+//#region [IFILESYSTEMSERVICE INTERFACE]
+
+/**
+ * A file identifier represents either a file path (string) in Electron or a File object in browser environments.
+ */
+export type FileIdentifier = string | File;
+
+/**
+ * The result of a file or folder picker dialog.
+ * - In Electron, `fileIdentifiers` will be file paths (string).
+ * - In a browser, they may be File objects or handles.
+ */
 export interface FilePickerResult {
   /**
-   * whether or not the dialog was canceled.
+   * Indicates whether the dialog was canceled.
    */
   canceled: boolean;
   /**
-   * An array of file paths chosen by the user. If the dialog is cancelled this will
-   * be an empty array.
+   * An array of file identifiers chosen by the user.
    */
-  filePaths: string[];
+  fileIdentifiers: FileIdentifier[];
   /**
-   * An array matching the `filePaths` array of base64 encoded strings which contains
-   * security scoped bookmark data. `securityScopedBookmarks` must be enabled for
-   * this to be populated. (For return values, see table here.)
+   * An optional array of base64 encoded security scoped bookmarks.
    *
    * @platform darwin,mas
    */
@@ -28,39 +37,39 @@ export interface FileFilter {
 
 export interface FilePickerProperties {
   /**
-   * Allow files to be selected
+   * Allow files to be selected.
    */
   openFile?: boolean;
   /**
-   * Allow directories to be selected
+   * Allow directories to be selected.
    */
   openDirectory?: boolean;
   /**
-   * Allow multiple paths to be selected
+   * Allow multiple selections.
    */
   multiSelections?: boolean;
   /**
-   * Show hidden files in dialog
+   * Show hidden files in dialog.
    */
   showHiddenFiles?: boolean;
   /**
-   * Allow creating new directories from dialog
+   * Allow creating new directories from the dialog.
    */
   createDirectory?: boolean;
   /**
-   * Prompt for creation if path entered in dialog does not exist
+   * Prompt for creation if the entered path does not exist.
    */
   promptToCreate?: boolean;
   /**
-   * Disable the automatic alias (symlink) path resolution
+   * Disable the automatic alias (symlink) path resolution.
    */
   noResolveAliases?: boolean;
   /**
-   * Treat packages (like .app folders) as directories
+   * Treat packages (like .app folders) as directories.
    */
   treatPackageAsDirectory?: boolean;
   /**
-   * Don't add the item being chosen to recent documents list
+   * Do not add the chosen item to recent documents list.
    */
   dontAddToRecent?: boolean;
 }
@@ -69,8 +78,7 @@ export interface FilePickerOptions {
   title?: string;
   defaultPath?: string;
   /**
-   * Custom label for the confirmation button, when left empty the default label will
-   * be used.
+   * Custom label for the confirmation button. If not provided, the default is used.
    */
   buttonLabel?: string;
   filters?: FileFilter[];
@@ -83,11 +91,57 @@ export interface FilePickerOptions {
   properties?: FilePickerProperties;
 }
 
+/**
+ * IFilesystemService provides file system operations that work in both Electron and browser environments.
+ * - In Electron, file operations use IPC and file identifiers are file paths (strings).
+ * - In browser implementations, file identifiers may be File objects or handles.
+ */
 export interface IFilesystemService {
+  /**
+   * Shows a file picker dialog.
+   *
+   * @param options - Options for the file picker.
+   * @returns A promise that resolves with the file picker result.
+   */
   showFilePicker(options: FilePickerOptions): Promise<FilePickerResult>;
+
+  /**
+   * Shows a folder picker dialog.
+   *
+   * @param options - Options for the folder picker.
+   * @returns A promise that resolves with the folder picker result.
+   */
   showFolderPicker(options: FilePickerOptions): Promise<FilePickerResult>;
-  readFile(filePath: string, encoding: 'utf8'): Promise<string>;
-  readFile(filePath: string, encoding: 'binary'): Promise<ArrayBuffer>;
-  readFile(filePath: string): Promise<string>;
-  writeFile(filePath: string, data: string | ArrayBuffer, encoding?: 'utf8' | 'binary'): Promise<void>;
+
+  /**
+   * Reads a file.
+   * In Electron, the file parameter must be a file path (string).
+   * In a browser, the file parameter can be a File object.
+   *
+   * @param file - The file identifier (path or File object).
+   * @param encoding - The encoding to use ('utf8' or 'binary'). Defaults to 'utf8'.
+   * @returns A promise that resolves with the file content.
+   */
+  readFile(file: string | File, encoding?: 'utf8' | 'binary'): Promise<string | ArrayBuffer>;
+
+  /**
+   * Writes data to a file.
+   * In Electron, the file parameter must be a file path (string).
+   * In a browser, the file parameter can be a File object (or a file handle if supported).
+   *
+   * @param file - The file identifier (path or File object).
+   * @param data - The data to write.
+   * @returns A promise that resolves when the write is complete.
+   */
+  writeFile(file: string | File, data: string | ArrayBuffer): Promise<void>;
+
+  /**
+   * Returns the application root path.
+   *
+   * @param subFolder - Optional subfolder(s) to append to the root.
+   * @returns The application root path.
+   */
+  getAppRoot(subFolder?: string): string;
 }
+
+//#endregion

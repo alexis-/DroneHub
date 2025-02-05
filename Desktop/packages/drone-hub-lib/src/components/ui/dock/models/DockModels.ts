@@ -50,6 +50,12 @@ export interface Panel {
    * A stable async component wrapper for the panel’s Vue component.
    */
   component: Component;
+
+  /**
+   * Optional external reference callback to receive the component instance.
+   * Instead of passing a ref and watching it, the host can supply a callback.
+   */
+  instanceCallback?: (instance: any) => void;
 }
 
 /**
@@ -62,6 +68,7 @@ export function createPanel(opts: {
   closeable?: boolean;
   props?: any;
   component?: () => Promise<Component>;
+  instanceCallback?: (instance: any) => void;
 }): Panel {
   return {
     id: uuidv4(),
@@ -71,10 +78,11 @@ export function createPanel(opts: {
     parent: null,
     closeable: opts.closeable ?? true,
     props: opts.props ?? {},
+    instanceCallback: opts.instanceCallback,
     component: markRaw(defineAsyncComponent(opts.component
       ? opts.component
       : () => Promise.resolve(() => {throw new Error('Component not found')}) // safe default
-    ))
+    )),
   };
 }
 

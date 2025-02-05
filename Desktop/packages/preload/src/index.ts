@@ -13,6 +13,6 @@
 
 export { getLocaleCountryCode } from './ipc.js';
 export { getGeoIp } from './ipc.js';
-export { showFilePicker, showFolderPicker, readFile, writeFile } from './filesystem.js';
+export { getAppRoot, showFilePicker, showFolderPicker, readFile, writeFile } from './filesystem.js';
 export type { FilePickerOptions, FileFilter } from './filesystem.js';
 export { databaseApi } from './database.js';

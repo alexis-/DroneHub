@@ -1,63 +1,91 @@
 <template>
   <div class="dock-panel">
-    <!-- Panel header -->
-    <div class="panel-header">
-      <div class="header-content">
-        <span 
-          v-if="panel.icon"
-          class="material-symbols-outlined"
-        >{{ panel.icon }}</span>
-        <span class="panel-title">{{ panel.title }}</span>
-      </div>
-      <div class="header-actions">
-        <button 
-          v-if="panel.closeable"
-          class="close-button"
-          @click="closePanel"
-        >
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
-    </div>
-
     <!-- Panel content -->
     <div class="panel-content">
+      <!--
+        We pass along all props except 'instanceRef'
+        and we bind a local ref (childComponent) to the dynamic component.
+      -->
       <component
         :is="panel.component"
-        v-bind="panel.props"
+        v-bind="props.panel.props"
+        ref="childComponent"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useDockStore } from '#stores/dockStore'
-import { type Panel } from './models/DockModels'
+  
+  //#region Imports
 
-/**
- * Props: a single Panel to be rendered in this DockPanel
- */
-const props = defineProps<{
-  panel: Panel
-}>()
+  import { ref, computed, onMounted, watch } from 'vue';
+  import { useDockStore } from '#stores/dockStore';
+  import type { Panel } from './models/DockModels';
+  
+  //#endregion
 
-const store = useDockStore()
 
-/**
- * Closes the panel from the store. Removes it from the area’s panelStack.
- */
-function closePanel() {
-  store.removePanel(props.panel);
-}
+  //#region Props Declaration
+
+  /**
+   * Props: a single Panel to be rendered in this DockPanel.
+   */
+  const props = defineProps<{
+    panel: Panel;
+  }>();
+  
+  //#endregion
+
+
+  //#region Store & Local Ref
+
+  /**
+   * Access the docking store for panel operations.
+   */
+  const store = useDockStore();
+  
+  /**
+   * Reference to the dynamic component instance.
+   */
+  const childComponent = ref<any>(null);
+  
+  //#endregion
+
+
+  //#region Lifecycle: Update external ref
+  
+  /**
+   * Watch the treeViewRef so that when it becomes available,
+   * we can update its model property.
+   */
+   watch(childComponent, (instance) => {
+    if (props.panel.instanceCallback && typeof props.panel.instanceCallback === 'function') {
+      props.panel.instanceCallback(childComponent.value);
+    }
+  });
+  
+  //#endregion
+
+
+  //#region Panel Actions
+
+  /**
+   * Closes the panel by delegating to the dock store.
+   */
+  function closePanel() {
+    store.removePanel(props.panel);
+  }
+  
+  //#endregion
 </script>
 
 <style scoped>
 /*
   The outer .dock-panel is a vertical flex container.
   We rely on parent classes (e.g. DockAreaPanelStack) to give us a bounding box
-  with @apply flex-1 min-h-0. 
+  with @apply flex-1 min-h-0.
 */
-
 .dock-panel {
   /* 
     flex-col so header is at top, main content grows below 
@@ -67,33 +95,6 @@ function closePanel() {
   @apply flex flex-col min-h-0 h-full w-full;
 }
 
-/** Panel header with a close button. */
-.panel-header {
-  @apply flex items-center justify-between h-9 px-3
-         bg-surface-800 border-b border-surface-700;
-}
-
-.header-content {
-  @apply flex items-center gap-2;
-}
-
-.panel-title {
-  @apply text-sm text-surface-100 truncate;
-}
-
-.header-actions {
-  @apply flex items-center;
-}
-
-.close-button {
-  @apply p-0.5 rounded-sm hover:bg-surface-700 transition-colors duration-150;
-}
-
-.close-button .material-symbols-outlined {
-  @apply text-base text-surface-100;
-}
-
-
 /* 
   Main panel content region: this is a flex item that will occupy the 
   leftover vertical space below the header.
@@ -101,5 +102,4 @@ function closePanel() {
 .panel-content {
   @apply flex-1 min-h-0;
 }
-
 </style>

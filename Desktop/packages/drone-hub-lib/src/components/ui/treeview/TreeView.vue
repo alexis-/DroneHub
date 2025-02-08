@@ -2,11 +2,16 @@
   <div class="tree-view" :style="customStyle">
     <!-- Content -->
     <div class="tree-view__content">
-      <TreeNode
-        v-if="rootTreeNode"
-        :node="rootTreeNode"
-        :depth="0"
-      />
+      <!-- If we have at least one root node, display them all. Otherwise show empty. -->
+      <template v-if="rootTreeNodes.length > 0">
+        <TreeNode
+          v-for="(node, index) in rootTreeNodes"
+          :key="node.id"
+          :node="node"
+          :depth="0"
+        />
+      </template>
+
       <div v-else class="tree-view__empty">
         <span class="material-symbols-outlined">
           error_outline
@@ -18,20 +23,31 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, computed } from 'vue';
-import { buildTreeModel } from './TreeViewBuilder';
-import TreeNode from './TreeNode.vue';
+//#region Imports
+import { ref, computed, watch } from 'vue';
 import type { TreeNodeData as ITreeNode } from './TreeViewModels';
+import { buildTreeModel } from './TreeViewBuilder';
+import { default as TreeNode } from './TreeNode.vue';
+import { TREE_MODEL_META } from './decorators/TreeModel';
+//#endregion
+
 
 /**
- * The top-level TreeView that receives an annotated model instance and 
- * automatically builds a reactive tree.
+ * The updated TreeView component can accept:
+ *  - A single @TreeModel-decorated instance, or
+ *  - An array of @TreeModel-decorated instances.
+ * 
+ * If an array is provided, each decorated item is turned into a top-level node.
+ * Non-decorated items within that array are ignored (not displayed).
  */
+
 const props = defineProps<{
   /**
-   * The annotated model instance (should be reactive if you want full reactivity).
+   * The @TreeModel-decorated instance OR an array of decorated instances.
+   * If it's an array, every decorated item is treated as a top-level node.
    */
-  model?: any;
+  model?: any; 
+
   /**
    * Optional size options to override default text and item row sizes.
    */
@@ -54,30 +70,83 @@ const props = defineProps<{
   }
 }>();
 
-//#region rootTreeNode reactivity
+
+//#region rootTreeNodes
 
 /**
- * The root node built from the model. 
- * We rebuild it whenever props.model changes.
+ * We store ALL top-level nodes (one for a single-model scenario,
+ * or multiple if `props.model` is an array).
  */
-const rootTreeNode = ref<ITreeNode | null>(null);
+const rootTreeNodes = ref<ITreeNode[]>([]);
+
 
 /**
- * Watch for the model reference changing. If the user replaces
- * the entire model instance, we rebuild the entire tree from scratch.
- * Otherwise, partial changes are handled by watchers in buildTreeModel’s reactive nodes.
+ * Builds the array of root nodes based on the current props.model.
+ * - If model is a single decorated instance, we build exactly one root node.
+ * - If model is an array of instances, we attempt to build one root node per
+ *   decorated item (items lacking @TreeModel are ignored).
+ */
+function rebuildRootNodes(model: any) {
+  // If no model is provided, clear out.
+  if (!model) {
+    rootTreeNodes.value = [];
+    return;
+  }
+
+  // If it's an array, build multiple top-level nodes for each decorated item.
+  if (Array.isArray(model)) {
+    const nodes: ITreeNode[] = [];
+
+    for (const item of model) {
+      // Attempt to see if the item is decorated with @TreeModel
+      const hasTreeModel = item && item.constructor
+        ? Reflect.getMetadata(TREE_MODEL_META, item.constructor)
+        : undefined;
+
+      // If decorated, build a root node for it
+      if (hasTreeModel) {
+        nodes.push(buildTreeModel(item));
+      }
+    }
+
+    rootTreeNodes.value = nodes;
+  }
+  // Otherwise, assume it's a single object. Check if it is decorated.
+  else {
+    const hasTreeModel = Reflect.getMetadata(TREE_MODEL_META, model.constructor);
+    if (hasTreeModel) {
+      rootTreeNodes.value = [buildTreeModel(model)];
+    } else {
+      // If single model is not decorated, show no items
+      rootTreeNodes.value = [];
+    }
+  }
+}
+//#endregion
+
+
+//#region Watchers
+
+/**
+ * Watch for changes to props.model. If the user replaces the entire object or array,
+ * we rebuild the tree from scratch. If the user modifies array contents (add/remove),
+ * the deep option ensures we re-check and build the updated top-level nodes.
+ * 
+ * Note that property-level changes to a decorated instance are handled by watchers
+ * inside buildTreeModel, so they remain reactive. But adding/removing items from
+ * an array is handled here by re-scanning the array.
  */
 watch(
   () => props.model,
-  (newModel) => {
-    rootTreeNode.value = newModel ? buildTreeModel(newModel) : null;
+  (newVal) => {
+    rebuildRootNodes(newVal);
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
-
 //#endregion
 
-//#region customStyle computed
+
+//#region customStyle Computed
 
 /**
  * Computes inline styles based on optional size options.
@@ -85,7 +154,7 @@ watch(
  */
 const customStyle = computed(() => {
   const style: Record<string, string> = {};
-  
+
   // Node Dimensions
   if (props.sizeOptions?.treeNodeHeight) {
     style['--tree-node-height'] = props.sizeOptions.treeNodeHeight;
@@ -99,7 +168,7 @@ const customStyle = computed(() => {
   if (props.sizeOptions?.treeNodeIndentSpacing) {
     style['--tree-node-indent-spacing'] = props.sizeOptions.treeNodeIndentSpacing;
   }
-  
+
   // Node Padding and Margins
   if (props.sizeOptions?.treeNodePaddingY) {
     style['--tree-node-padding-y'] = props.sizeOptions.treeNodePaddingY;
@@ -110,7 +179,7 @@ const customStyle = computed(() => {
   if (props.sizeOptions?.treeNodeIconMargin) {
     style['--tree-node-icon-margin'] = props.sizeOptions.treeNodeIconMargin;
   }
-  
+
   // Toggle and Checkbox
   if (props.sizeOptions?.treeNodeToggleSize) {
     style['--tree-node-toggle-size'] = props.sizeOptions.treeNodeToggleSize;
@@ -124,7 +193,7 @@ const customStyle = computed(() => {
   if (props.sizeOptions?.treeNodeCheckboxMargin) {
     style['--tree-node-checkbox-margin'] = props.sizeOptions.treeNodeCheckboxMargin;
   }
-  
+
   // Tree Lines
   if (props.sizeOptions?.treeLineWidth) {
     style['--tree-line-width'] = props.sizeOptions.treeLineWidth;
@@ -138,10 +207,9 @@ const customStyle = computed(() => {
   if (props.sizeOptions?.treeLineIndent) {
     style['--tree-line-indent'] = props.sizeOptions.treeLineIndent;
   }
-  
+
   return style;
 });
-
 //#endregion
 </script>
 

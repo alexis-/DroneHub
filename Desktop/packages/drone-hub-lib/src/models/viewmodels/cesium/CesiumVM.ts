@@ -22,6 +22,7 @@ import { CesiumMapLayers } from '#data/map-layers.ts';
 import { mapCoordinates } from '#data/map-coordinates.ts';
 import type { Coordinate } from 'ol/coordinate';
 import { Transient } from '#utils/json-serialization.ts';
+import type { IViewModelCallbacks } from '#models/interfaces/IViewModelCallbacks.ts';
 
 /**
  * Interface representing the serializable state of the Cesium camera.
@@ -52,8 +53,11 @@ const CONTEXT = "CesiumViewModel";
  * CesiumViewModel implements map control functionality using Cesium.
  * It tracks the camera state (position, orientation, and zoom level) so that it can be
  * persisted across component mount/unmount cycles and app sessions.
+ *
+ * This view model implements IViewModelLifecycle so that on unmount it updates the camera state
+ * and cleans up the Cesium instance.
  */
-export class CesiumViewModel implements IMapControls {
+export class CesiumViewModel implements IMapControls, IViewModelCallbacks {
   //#region [TRANSIENT PROPERTIES]
 
   /**
@@ -156,7 +160,7 @@ export class CesiumViewModel implements IMapControls {
   ): Promise<void> {
     this._logger = logger;
 
-    // Load base layers and terrain provider
+    // Load base layers and terrain provider.
     const norge = CesiumMapLayers.Norge();
     const terrainProvider = await CesiumMapLayers.TerrainProvider();
 
@@ -182,7 +186,7 @@ export class CesiumViewModel implements IMapControls {
         defaultCoordinates[1],
         defaultZoom
       );
-      // Initialize the cameraState with default values
+      // Initialize the cameraState with default values.
       this.cameraState = {
         destination: {
           x: initialDestination.x,
@@ -199,18 +203,18 @@ export class CesiumViewModel implements IMapControls {
 
     // Initialize the Cesium viewer with configuration options.
     this._viewer = new Viewer(mapElement, {
-      // Layers
+      // Layers.
       baseLayer: ImageryLayer.fromProviderAsync(new Promise(res => res(norge)), {}),
       terrainProvider: terrainProvider,
 
-      // Rendering
+      // Rendering.
       useBrowserRecommendedResolution: false,
 
-      // Disable Cesium Ion
+      // Disable Cesium Ion.
       baseLayerPicker: false,
       geocoder: false,
 
-      // Disable widgets
+      // Disable widgets.
       timeline: false,
       animation: false,
       fullscreenButton: false,
@@ -221,39 +225,34 @@ export class CesiumViewModel implements IMapControls {
       navigationHelpButton: false
     });
 
-    // Lighting configuration
+    // Lighting configuration.
     this._viewer.scene.globe.enableLighting = true;
     this._viewer.scene.globe.atmosphereLightIntensity = 15;
     this._viewer.scene.highDynamicRange = true;
 
-    // Set the viewer clock time
+    // Set the viewer clock time.
     this._viewer.clock.currentTime = JulianDate.fromIso8601("2024-08-01T12:30:00.000Z");
 
-    // Texture rendering configuration
+    // Texture rendering configuration.
     this._viewer.scene.globe.maximumScreenSpaceError = 1;
     this._viewer.scene.postProcessStages.fxaa.enabled = false;
     this._viewer.scene.postProcessStages.tonemapper = Tonemapper.PBR_NEUTRAL;
 
-    // Configure imagery layer filters for all layers
+    // Configure imagery layer filters for all layers.
     for (let i = 0; i < this._viewer.imageryLayers.length; i++) {
       this._viewer.imageryLayers.get(i).magnificationFilter = TextureMagnificationFilter.NEAREST;
       this._viewer.imageryLayers.get(i).minificationFilter = TextureMinificationFilter.NEAREST;
     }
 
-    // Elevation settings
+    // Elevation settings.
     this._viewer.scene.globe.depthTestAgainstTerrain = true;
     this._viewer.scene.verticalExaggeration = 1;
 
-    // Fly to the initial camera state (persisted or default) without animation
+    // Fly to the initial camera state (persisted or default) without animation.
     this.camera.flyTo({
       destination: initialDestination,
       orientation: initialOrientation,
       duration: 0
-    });
-
-    // Attach a listener to update the persisted camera state whenever the camera stops moving.
-    this.camera.moveEnd.addEventListener(() => {
-      this.updateCameraState();
     });
 
     this._logger.info(CONTEXT, 'Cesium viewer initialized successfully');
@@ -266,7 +265,7 @@ export class CesiumViewModel implements IMapControls {
 
   /**
    * Updates the persisted camera state with the current camera position and orientation.
-   * This method is called automatically on camera move end.
+   * This method is now called only during unmount to capture the final camera state.
    */
   public updateCameraState(): void {
     // Capture the current camera position and orientation.
@@ -323,8 +322,6 @@ export class CesiumViewModel implements IMapControls {
         cancelAnimationFrame(this._zoomFrame);
         this._zoomFrame = null;
       }
-      // Update persisted camera state when zoom operation ends.
-      this.updateCameraState();
       return;
     }
 
@@ -387,6 +384,33 @@ export class CesiumViewModel implements IMapControls {
     if (!this._isZooming) {
       this._isZooming = true;
       this._handleZoom();
+    }
+  }
+
+  //#endregion
+
+
+  //#region [VIEW MODEL CALLBACKS]
+
+  /**
+   * Called when the view model is unmounted.
+   * This lifecycle callback updates the camera state one final time and cleans up the Cesium instance.
+   */
+  public onUnmounted(): void {
+    // Update camera state to capture the final position and orientation.
+    this.updateCameraState();
+
+    // If a zoom operation is in progress, cancel it.
+    if (this._zoomFrame !== null) {
+      cancelAnimationFrame(this._zoomFrame);
+      this._zoomFrame = null;
+    }
+
+    // Destroy the Cesium viewer instance if it exists.
+    if (this._viewer) {
+      this._viewer.destroy();
+      this._viewer = undefined;
+      this._logger.info(CONTEXT, 'Cesium viewer destroyed on unmount.');
     }
   }
 

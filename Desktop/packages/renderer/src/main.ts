@@ -1,11 +1,14 @@
 import 'reflect-metadata';
 import { createApp } from 'vue';
+import { ipcRenderer } from 'electron';
 import { registerPlugins } from '@/plugins/plugin-manager';
 import { Logger } from '@/services/logger.service';
 import { Filesystem } from '@/services/FileSystemService';
-import { ElectronAppStatePersistenceService } from '@dhlib/services/ElectronAppStatePersistenceService';
-import { AppStatePersistenceServiceKey, FilePickerServiceKey, LoggerServiceKey, ViewModelStoreKey } from '@dhlib/models/injection-keys';
+
 import { useViewModelStore } from '@dhlib/stores/viewModelStore';
+import { ElectronAppStatePersistenceService } from '@dhlib/services/ElectronAppStatePersistenceService';
+import { AppStatePersistenceServiceKey, FilePickerServiceKey, LoggerServiceKey } from '@dhlib/models/injection-keys';
+
 import App from '@/App.vue';
 
 import '@material-symbols/font-400/outlined.css';
@@ -22,27 +25,23 @@ try {
 
   // The app state persistence service be must initialized before the view model store.
   const appStatePersistenceService = new ElectronAppStatePersistenceService(Filesystem);
-  app.provide(AppStatePersistenceServiceKey, appStatePersistenceService);
-
-  // Instantiate the view model store and store its reference locally for later use.
-  const viewModelStore = useViewModelStore();
 
   // Dependency injection: Provide our services and view model store to the application.
+  app.provide(AppStatePersistenceServiceKey, appStatePersistenceService);
   app.provide(FilePickerServiceKey, Filesystem);
   app.provide(LoggerServiceKey, Logger);
-  app.provide(ViewModelStoreKey, viewModelStore);
 
   // Mount the Vue app.
   app.mount('#app');
 
   Logger.info(CONTEXT, 'Application initialized successfully');
-  
-  // Add a listener to flush pending view model changes when the app is closing.
-  window.addEventListener('beforeunload', () => {
-    // flushAll returns a promise, but we're not awaiting here since beforeunload cannot be async.
-    // This call attempts to persist any pending changes immediately.
-    viewModelStore.flushAll();
-  });
+
+  window.addEventListener('app-closing', async () => {
+    // Create an instance of the view model store.
+    const viewModelStore = useViewModelStore();
+
+    await viewModelStore.onAppClosing();
+  })
 
 } catch (error) {
   Logger.error(CONTEXT, 'Failed to initialize application', error);

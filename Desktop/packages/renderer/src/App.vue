@@ -13,21 +13,29 @@
   
   //#region Imports
 
-  import { type Ref, ref, onMounted } from 'vue';
+  import { type Ref, ref, onMounted, inject } from 'vue';
+  import { storeToRefs } from 'pinia';
+
+  // UI imports
   import DockRoot from '@dhlib/components/ui/dock/DockRoot.vue';
   import TreeView from '@dhlib/components/ui/treeview/TreeView.vue';
-  // import DockExample from '@dhlib/components/ui/dock/examples/DockExample.vue'
-  // import TreeViewExample from '@dhlib/components/ui/treeview/examples/TreeViewExample.vue'
-  import { useDockStore } from '@dhlib/stores/dockStore';
-  import { AppError } from '@dhlib/models/app-errors';
-  import type { IProject } from '@dhlib/models/core/interfaces/IProject';
-  import { projectRepository } from '@/repositories/project.repository';
   import { DockPosition, PanelType } from '@dhlib/components/ui/dock/models/DockTypes';
   import { createPanel } from '@dhlib/components/ui/dock/models/DockModels';
+  // import DockExample from '@dhlib/components/ui/dock/examples/DockExample.vue'
+  // import TreeViewExample from '@dhlib/components/ui/treeview/examples/TreeViewExample.vue'
+
+  // Models imports
+  import { AppError } from '@dhlib/models/app-errors';
+  import type { IProject } from '@dhlib/models/core/interfaces/IProject';
   
-import { 
-  RootContainerModel,
-} from '@dhlib/components/ui/treeview/examples/TreeViewExampleModel';
+  import { useDockStore } from '@dhlib/stores/dockStore';
+  import { useViewModelStore } from '@dhlib/stores/viewModelStore';
+  import { projectRepository } from '@/repositories/project.repository';
+  
+  // TODO: DELETE
+  import { 
+    RootContainerModel,
+  } from '@dhlib/components/ui/treeview/examples/TreeViewExampleModel';
   //#endregion
 
   const rootModel = ref(new RootContainerModel());
@@ -35,6 +43,8 @@ import {
   //#region Local State & References
 
   const store = useDockStore();
+  const viewModelStore = useViewModelStore();
+  const {activeViewModels} = storeToRefs(viewModelStore);
   const projects: Ref<IProject[]> = ref([]);
   
   //#endregion
@@ -72,7 +82,7 @@ import {
         // The component is loaded asynchronously (TreeView) and we pass a reference in its props.
         component: async () => TreeView,
         props: {
-          model: null
+          model: activeViewModels
         },
       }),
       DockPosition.Bottom,

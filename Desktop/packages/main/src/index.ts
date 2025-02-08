@@ -12,6 +12,7 @@ import {allowExternalUrls} from './modules/ExternalUrls.js';
 import {initializeAppDatabase} from './modules/Database.js';
 import {initializeAppIpc} from './modules/Ipc.js';
 import { chromeDevToolsExtension } from './modules/ChromeDevToolsExtension.js';
+import { registerAppClosingNotifier } from './modules/AppClosingNotifier.js';
 
 
 export async function initApp(initConfig: AppInitConfig) {
@@ -42,6 +43,7 @@ export async function initApp(initConfig: AppInitConfig) {
     )
 
     // DroneHub Modules
+    .init(registerAppClosingNotifier())
     .init(initializeAppDatabase())
     .init(initializeAppIpc());
 
